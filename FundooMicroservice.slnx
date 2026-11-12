@@ -1,0 +1,28 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="docker-compose.yml" />
+  </Folder>
+  <Folder Name="/src/" />
+  <Folder Name="/src/ApiGateway/">
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/ApiGateway/Fundoo.ApiGateway/Fundoo.ApiGateway.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/" />
+  <Folder Name="/src/Services/Notes/">
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/Notes/Fundoo.Notes.Api/Fundoo.Notes.Api.csproj" />
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/Notes/Fundoo.Notes.Application/Fundoo.Notes.Application.csproj" />
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/Notes/Fundoo.Notes.Domain/Fundoo.Notes.Domain.csproj" />
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/Notes/Fundoo.Notes.Infrastructure/Fundoo.Notes.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/Notification/">
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/Notification/Fundoo.Notification.Api/Fundoo.Notification.Api.csproj" />
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/Notification/Fundoo.Notification.Application/Fundoo.Notification.Application.csproj" />
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/Notification/Fundoo.Notification.Domain/Fundoo.Notification.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Services/User/">
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/User/Fundoo.User.Api/Fundoo.User.Api.csproj" />
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/User/Fundoo.User.Application/Fundoo.User.Application.csproj" />
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/User/Fundoo.User.Domain/Fundoo.User.Domain.csproj" />
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/User/Fundoo.User.Infrastructure/Fundoo.User.Infrastructure.csproj" />
+  </Folder>
+</Solution>
