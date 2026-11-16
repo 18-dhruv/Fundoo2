@@ -60,7 +60,7 @@ namespace Fundoo.Notification.Api.Controllers
                 });
             }
 
-            await _notificationService.SendTwoFactorOtpNotificationAsync(request);
+            await _notificationService.SendTwoFactorOtpNotificationAsync(request, cancellationToken);
 
             return Accepted(new
             {

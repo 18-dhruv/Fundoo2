@@ -1,5 +1,12 @@
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: fundoo-redis
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6379:6379"
+
   kafka:
     image: confluentinc/cp-kafka:7.8.0
     container_name: fundoo-kafka
@@ -26,6 +33,25 @@ services:
 
     volumes:
       - kafka-data:/var/lib/kafka/data
+
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.8.0
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic notes.created.v1 --partitions 1 --replication-factor 1
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic notes.updated.v1 --partitions 1 --replication-factor 1
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic notes.events.dead-letter.v1 --partitions 1 --replication-factor 1
 
 volumes:
   kafka-data:

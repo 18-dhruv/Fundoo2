@@ -1,6 +1,7 @@
 using Fundoo.Notification.Api.Services;
 using Fundoo.Notification.Application.Abstractions;
 using Microsoft.Extensions.Options;
+using Fundoo.Notification.Api.Services.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +25,8 @@ builder.Services.AddSwaggerGen(options =>
 
 // Register Notification Service
 builder.Services.AddTransient<INotificationService, SmtpEmailService>();
+builder.Services.AddSingleton<IKafkaDeadLetterPublisher, KafkaDeadLetterPublisher>();
+builder.Services.AddHostedService<NoteEventsConsumer>();
 
 var app = builder.Build();
 
@@ -34,7 +37,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// The User API calls the local Notification API over HTTP during development.
+// Keep HTTPS redirection for deployed environments, where certificates are configured.
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseAuthorization();
 

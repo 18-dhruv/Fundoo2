@@ -1,5 +1,6 @@
 using Fundoo.User.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Fundoo.User.Api.Authentication.Google;
 using Microsoft.Extensions.Http.Resilience;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
@@ -68,11 +69,11 @@ builder.Services
    {
        // Total request timeout
        options.TotalRequestTimeout.Timeout =
-           TimeSpan.FromSeconds(20);
+           TimeSpan.FromSeconds(30);
 
        // Timeout for one attempt
        options.AttemptTimeout.Timeout =
-           TimeSpan.FromSeconds(5);
+           TimeSpan.FromSeconds(25);
 
        // Retry configuration
        options.Retry.MaxRetryAttempts = 3;
@@ -90,7 +91,7 @@ builder.Services
 
        options.CircuitBreaker.MinimumThroughput = 10;
 
-       options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+       options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(60);
 
        
        options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(15);
@@ -133,9 +134,8 @@ builder.Services
             ValidateLifetime = true,
             ClockSkew = TimeSpan.Zero
         };
-    });
-
-
+    })
+    .AddFundooGoogleAuthentication(builder.Configuration);
 
 var app = builder.Build();
 

@@ -3,6 +3,7 @@ using Fundoo.Notes.Application.Repositories;
 using Fundoo.Notes.Application.Services;
 using Fundoo.Notes.Infrastructure.Data;
 using Fundoo.Notes.Infrastructure.Repositories;
+using Fundoo.Notes.Infrastructure.Messaging;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -21,6 +22,7 @@ namespace Fundoo.Notes.Infrastructure
 
             // Application service
             services.AddScoped<INotesService, NotesService>();
+            services.AddSingleton<INoteEventPublisher, KafkaNoteEventPublisher>();
 
             // Label Repository
             services.AddScoped<ILabelsRepository, LabelsRepository>();

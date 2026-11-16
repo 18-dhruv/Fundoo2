@@ -1,4 +1,3 @@
-﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Fundoo.User.Api.Contracts;
 using Fundoo.User.Application.Abstractions;
@@ -10,7 +9,6 @@ namespace Fundoo.User.Api.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IAuthService _authService;
-
         public AuthController(IAuthService authService)
         {
             _authService = authService;
@@ -48,11 +46,6 @@ namespace Fundoo.User.Api.Controllers
             [FromBody] LoginRequest request,
             CancellationToken cancellationToken)
         {
-            await Task.Delay(
-                TimeSpan.FromSeconds(15),
-                cancellationToken);
-            Console.WriteLine($"[Login] hit at {DateTime.Now:HH:mm:ss.fff}");
-
             var result = await _authService.LoginAsync(
                 request.Email,
                 request.Password,
@@ -130,85 +123,6 @@ namespace Fundoo.User.Api.Controllers
             });
         }
 
-        [Authorize]
-        [HttpPost("2fa/enable")]
-        public async Task<IActionResult> Enable2FA(
-            CancellationToken cancellationToken)
-        {
-            // Get user ID from claims (requires authorization)
-            var userIdClaim = User.FindFirst("sub") ?? User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
-            if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out var userId))
-            {
-                return Unauthorized(new
-                {
-                    isSuccess = false,
-                    message = "User not authenticated."
-                });
-            }
-
-            var result = await _authService.InitiateTwoFactorAsync(userId, cancellationToken);
-
-            if (!result.IsSuccess)
-            {
-                return BadRequest(new
-                {
-                    isSuccess = false,
-                    message = result.Message
-                });
-            }
-
-            return Ok(new
-            {
-                isSuccess = true,
-                message = result.Message
-            });
-        }
-
-        [Authorize]
-        [HttpPost("2fa/confirm")]
-        public async Task<IActionResult> Confirm2FA(
-            [FromBody] Confirm2FARequest request,
-            CancellationToken cancellationToken)
-        {
-            // Get user ID from claims (requires authorization)
-            var userIdClaim = User.FindFirst("sub") ?? User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
-            if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out var userId))
-            {
-                return Unauthorized(new
-                {
-                    isSuccess = false,
-                    message = "User not authenticated."
-                });
-            }
-
-            if (string.IsNullOrWhiteSpace(request.Code))
-            {
-                return BadRequest(new
-                {
-                    isSuccess = false,
-                    message = "OTP code is required."
-                });
-            }
-
-            // Verify the OTP code and enable 2FA
-            var result = await _authService.ConfirmTwoFactorAsync(userId, request.Code, string.Empty, cancellationToken);
-
-            if (!result)
-            {
-                return BadRequest(new
-                {
-                    isSuccess = false,
-                    message = "Failed to confirm 2FA setup. Invalid or expired OTP code."
-                });
-            }
-
-            return Ok(new
-            {
-                isSuccess = true,
-                message = "Two-factor authentication has been enabled successfully."
-            });
-        }
-
         [HttpPost("2fa/verify")]
         public async Task<IActionResult> Verify2FA(
             [FromBody] Verify2FARequest request,
@@ -246,38 +160,6 @@ namespace Fundoo.User.Api.Controllers
             });
         }
 
-        [Authorize]
-        [HttpPost("2fa/disable")]
-        public async Task<IActionResult> Disable2FA(
-            CancellationToken cancellationToken)
-        {
-            // Get user ID from claims (requires authorization)
-            var userIdClaim = User.FindFirst("sub") ?? User.FindFirst("http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
-            if (userIdClaim is null || !Guid.TryParse(userIdClaim.Value, out var userId))
-            {
-                return Unauthorized(new
-                {
-                    isSuccess = false,
-                    message = "User not authenticated."
-                });
-            }
 
-            var result = await _authService.DisableTwoFactorAsync(userId, cancellationToken);
-
-            if (!result)
-            {
-                return BadRequest(new
-                {
-                    isSuccess = false,
-                    message = "Failed to disable 2FA."
-                });
-            }
-
-            return Ok(new
-            {
-                isSuccess = true,
-                message = "Two-factor authentication has been disabled."
-            });
-        }
     }
 }

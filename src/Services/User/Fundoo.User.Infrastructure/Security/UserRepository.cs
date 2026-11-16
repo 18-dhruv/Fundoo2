@@ -98,36 +98,19 @@ namespace Fundoo.User.Infrastructure.Security
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        public async Task AddOtpTokenAsync(OtpToken otpToken,
+        public async Task<ExternalLogin?> GetExternalLoginAsync(string provider,
+            string providerSubject,
             CancellationToken cancellationToken = default)
         {
-            await _context.OtpTokens.AddAsync(
-                otpToken,
+            return await _context.ExternalLogins.FirstOrDefaultAsync(
+                login => login.Provider == provider && login.ProviderSubject == providerSubject,
                 cancellationToken);
         }
 
-        public async Task<OtpToken?> GetLatestOtpTokenAsync(Guid userId,
+        public async Task AddExternalLoginAsync(ExternalLogin externalLogin,
             CancellationToken cancellationToken = default)
         {
-            return await _context.OtpTokens
-                .Where(token => token.UserId == userId && token.ExpiresAtUtc > DateTime.UtcNow)
-                .OrderByDescending(token => token.CreatedAtUtc)
-                .FirstOrDefaultAsync(cancellationToken);
-        }
-
-        public async Task InvalidateOtpTokensAsync(Guid userId,
-            CancellationToken cancellationToken = default)
-        {
-            var tokens = await _context.OtpTokens
-                .Where(token => token.UserId == userId && !token.IsVerified)
-                .ToListAsync(cancellationToken);
-
-            foreach (var token in tokens)
-            {
-                token.ExpiresAtUtc = DateTime.UtcNow;
-            }
-
-            await _context.SaveChangesAsync(cancellationToken);
+            await _context.ExternalLogins.AddAsync(externalLogin, cancellationToken);
         }
     }
 }

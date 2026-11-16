@@ -1,5 +1,4 @@
 using Fundoo.Notes.Infrastructure;
-using Fundoo.Notes.Infrastructure.Messaging;
 using HealthChecks.UI.Client;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
@@ -7,8 +6,6 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using Fundoo.Notes.Infrastructure.Messaging;
-using Confluent.Kafka;
 var builder = WebApplication.CreateBuilder(args);
 
 var notesConnectionString =
@@ -88,7 +85,6 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
-builder.Services.AddSingleton<KafkaProducerService>();
 var connectionString =
 builder.Configuration.GetConnectionString("NotesDb");
 builder.Services.AddHealthChecks().AddCheck(

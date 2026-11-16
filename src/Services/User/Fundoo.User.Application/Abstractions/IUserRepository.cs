@@ -27,10 +27,10 @@ namespace Fundoo.User.Application.Abstractions
             DateTime updatedAtUtc,
             CancellationToken cancellationToken = default);
 
-        Task AddOtpTokenAsync(OtpToken otpToken, CancellationToken cancellationToken = default);
+        Task<ExternalLogin?> GetExternalLoginAsync(string provider, string providerSubject,
+            CancellationToken cancellationToken = default);
 
-        Task<OtpToken?> GetLatestOtpTokenAsync(Guid userId, CancellationToken cancellationToken = default);
-
-        Task InvalidateOtpTokensAsync(Guid userId, CancellationToken cancellationToken = default);
+        Task AddExternalLoginAsync(ExternalLogin externalLogin,
+            CancellationToken cancellationToken = default);
     }
 }

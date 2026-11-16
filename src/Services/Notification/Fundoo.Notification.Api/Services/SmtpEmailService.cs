@@ -11,6 +11,19 @@ public sealed class SmtpEmailService(
     IConfiguration configuration,
     SmtpBulkhead bulkhead) : INotificationService
 {
+    public async Task SendNoteActivityNotificationAsync(
+        NoteActivityNotificationRequest request,
+        CancellationToken cancellationToken = default)
+    {
+        var body = NoteActivityEmailTemplate.Build(
+            request.Title, request.EventType, request.NoteId);
+        await SendEmailAsync(
+            request.RecipientEmail,
+            "Fundoo Notes - Note activity",
+            body,
+            cancellationToken);
+    }
+
     public async Task SendPasswordResetNotificationAsync(
     PasswordResetNotificationRequest request)
     {
@@ -42,7 +55,8 @@ public sealed class SmtpEmailService(
     private async Task SendEmailAsync(
         string recipientEmail,
         string subject,
-        string body)
+        string body,
+        CancellationToken cancellationToken = default)
     {
         var host = GetRequiredSetting("Host");
 
@@ -81,25 +95,27 @@ public sealed class SmtpEmailService(
         await client.ConnectAsync(
             host,
             port,
-            SecureSocketOptions.StartTls);
+            SecureSocketOptions.StartTls,
+            cancellationToken);
 
         try
         {
-            await client.AuthenticateAsync(username, password);
+            await client.AuthenticateAsync(username, password, cancellationToken);
 
-            await client.SendAsync(message);
+            await client.SendAsync(message, cancellationToken);
         }
         finally
         {
             if (client.IsConnected)
             {
-                await client.DisconnectAsync(true);
+                await client.DisconnectAsync(true, CancellationToken.None);
             }
         }
     }
 
     public async Task SendTwoFactorOtpNotificationAsync(
-        TwoFactorOtpNotificationRequest request)
+        TwoFactorOtpNotificationRequest request,
+        CancellationToken cancellationToken = default)
     {
         await bulkhead.ExecuteAsync(async () =>
         {
@@ -111,7 +127,8 @@ public sealed class SmtpEmailService(
             await SendEmailAsync(
                 request.RecipientEmail,
                 "Fundoo Notes - Two-Factor Authentication OTP",
-                body);
+                body,
+                cancellationToken);
         });
     }
 

@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Fundoo.Notification.Application\Fundoo.Notification.Application.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Fundoo.EventContracts\Fundoo.EventContracts.csproj" />
   </ItemGroup>
 
 </Project>

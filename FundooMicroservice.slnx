@@ -3,7 +3,9 @@
     <File Path=".gitignore" />
     <File Path="docker-compose.yml" />
   </Folder>
-  <Folder Name="/src/" />
+  <Folder Name="/src/">
+    <Project Path="D:/Sunakshi/FundooMicroservice/src/BuildingBlocks/Fundoo.EventContracts/Fundoo.EventContracts.csproj" />
+  </Folder>
   <Folder Name="/src/ApiGateway/">
     <Project Path="D:/Sunakshi/FundooMicroservice/src/ApiGateway/Fundoo.ApiGateway/Fundoo.ApiGateway.csproj" />
   </Folder>

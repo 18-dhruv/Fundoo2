@@ -6,6 +6,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Fundoo.Notes.Domain\Fundoo.Notes.Domain.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Fundoo.EventContracts\Fundoo.EventContracts.csproj" />
   </ItemGroup>
 
   <PropertyGroup>

@@ -19,7 +19,8 @@ namespace Fundoo.User.Domain.Entity
         public DateTime UpdatedAtUtc { get; set; }
 
         // Two-Factor Authentication properties
-        public bool TwoFactorEnabled { get; set; } = false;
+        // New accounts require an email OTP at login by default.
+        public bool TwoFactorEnabled { get; set; } = true;
         public string? TwoFactorSecret { get; set; } = null;
 
     }

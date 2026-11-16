@@ -7,7 +7,6 @@ namespace Fundoo.User.Infrastructure.Security
     {
         public DbSet<AppUser> Users => Set<AppUser>();
         public DbSet<PasswordResetToken> PasswordResetTokens => Set<PasswordResetToken>();
-        public DbSet<OtpToken> OtpTokens => Set<OtpToken>();
         public DbSet<ExternalLogin> ExternalLogins => Set<ExternalLogin>();
 
         protected override void OnModelCreating(ModelBuilder b)

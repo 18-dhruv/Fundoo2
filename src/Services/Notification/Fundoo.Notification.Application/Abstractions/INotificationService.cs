@@ -12,6 +12,11 @@ namespace Fundoo.Notification.Application.Abstractions
             WelcomeNotificationRequest request);
 
         Task SendTwoFactorOtpNotificationAsync(
-            TwoFactorOtpNotificationRequest request);
+            TwoFactorOtpNotificationRequest request,
+            CancellationToken cancellationToken = default);
+
+        Task SendNoteActivityNotificationAsync(
+            NoteActivityNotificationRequest request,
+            CancellationToken cancellationToken = default);
     }
 }

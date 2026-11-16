@@ -3,8 +3,7 @@ using Fundoo.Notes.Api.Contracts.Requests;
 using Fundoo.Notes.Api.Contracts.Response;
 using Fundoo.Notes.Application.Interfaces;
 using Fundoo.Notes.Domain.Entity;
-using Fundoo.Notes.Infrastructure.Events;
-using Fundoo.Notes.Infrastructure.Messaging;
+using Fundoo.EventContracts.Events;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -17,14 +16,14 @@ namespace Fundoo.Notes.Api.Controllers
     public class NotesController : ControllerBase
     {
         private readonly INotesService _notesService;
-        private readonly KafkaProducerService _kafkaProducer;
+        private readonly INoteEventPublisher _noteEventPublisher;
 
         public NotesController(
             INotesService notesService,
-            KafkaProducerService kafkaProducer)
+            INoteEventPublisher noteEventPublisher)
         {
             _notesService = notesService;
-            _kafkaProducer = kafkaProducer;
+            _noteEventPublisher = noteEventPublisher;
         }
 
         [HttpGet]
@@ -134,9 +133,8 @@ namespace Fundoo.Notes.Api.Controllers
                 IsArchived = false,
                 IsTrashed = false
             };
-            var recipientEmail =
-    User.FindFirst(ClaimTypes.Email)?.Value
-    ?? User.FindFirst("email")?.Value;
+            var recipientEmail = User.FindFirst(ClaimTypes.Email)?.Value
+                ?? User.FindFirst("email")?.Value;
 
             if (string.IsNullOrWhiteSpace(recipientEmail))
             {
@@ -149,15 +147,16 @@ namespace Fundoo.Notes.Api.Controllers
             var createdNote = await _notesService.CreateAsync(
                 note, cancellationToken);
 
-            var noteCreatedEvent = new NoteCreatedEvent
+            var noteCreatedEvent = new NoteEvent
             {
+                EventType = "notes.created.v1",
                 NoteId = createdNote.Id,
                 UserId = createdNote.UserId,
                 RecipientEmail = recipientEmail,
                 Title = createdNote.Title
             };
 
-            await _kafkaProducer.PublishNoteCreatedAsync(
+            await _noteEventPublisher.PublishCreatedAsync(
                 noteCreatedEvent,
                 cancellationToken);
 
@@ -186,6 +185,11 @@ namespace Fundoo.Notes.Api.Controllers
                 });
             }
 
+            var recipientEmail = User.FindFirst(ClaimTypes.Email)?.Value
+                ?? User.FindFirst("email")?.Value;
+            if (string.IsNullOrWhiteSpace(recipientEmail))
+                return Unauthorized(new { message = "Email claim missing from access token." });
+
             var note = new Note
             {
                 Id = id,
@@ -208,6 +212,15 @@ namespace Fundoo.Notes.Api.Controllers
                         message = "Note not found or cannot be updated."
                     });
                 }
+
+                await _noteEventPublisher.PublishUpdatedAsync(new NoteEvent
+                {
+                    EventType = "notes.updated.v1",
+                    NoteId = note.Id,
+                    UserId = note.UserId,
+                    RecipientEmail = recipientEmail,
+                    Title = note.Title
+                }, cancellationToken);
 
                 return Ok(new
                 {

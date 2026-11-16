@@ -44,17 +44,6 @@ namespace Fundoo.User.Infrastructure.Security
         }
 
         /// <summary>
-        /// Verifies a 6-digit OTP code sent via email
-        /// </summary>
-        public bool VerifyOtpCode(string otpCode, string providedCode)
-        {
-            if (string.IsNullOrWhiteSpace(otpCode) || string.IsNullOrWhiteSpace(providedCode))
-                return false;
-
-            return otpCode == providedCode.Trim();
-        }
-
-        /// <summary>
         /// Gets the setup key (deprecated - kept for backward compatibility)
         /// </summary>
         public string GetSetupKey(string email, string secret, string issuer = "Fundoo")
