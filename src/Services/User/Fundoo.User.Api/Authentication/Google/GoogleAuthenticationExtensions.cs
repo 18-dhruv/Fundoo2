@@ -8,9 +8,7 @@ public static class GoogleAuthenticationExtensions
 {
     public const string ExternalCookieScheme = "GoogleExternal";
 
-    public static AuthenticationBuilder AddFundooGoogleAuthentication(
-        this AuthenticationBuilder authentication,
-        IConfiguration configuration)
+    public static AuthenticationBuilder AddFundooGoogleAuthentication(this AuthenticationBuilder authentication,IConfiguration configuration)
     {
         var section = configuration.GetSection(GoogleOAuthOptions.SectionName);
         authentication.Services.Configure<GoogleOAuthOptions>(section);

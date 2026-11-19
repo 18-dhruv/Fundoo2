@@ -18,16 +18,6 @@ namespace Fundoo.Notification.Api.Controllers
       [FromBody] PasswordResetNotificationRequest request,
       CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(request.RecipientEmail) ||
-                string.IsNullOrWhiteSpace(request.ResetToken))
-            {
-                return BadRequest(new
-                {
-                    isSuccess = false,
-                    message = "Recipient email and reset token are required."
-                });
-            }
-
             // TEMPORARY: simulate a slow Notification API.
          //   await Task.Delay(TimeSpan.FromSeconds(20), cancellationToken);
 
@@ -46,20 +36,6 @@ namespace Fundoo.Notification.Api.Controllers
     [FromBody] TwoFactorOtpNotificationRequest request,
     CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(request.RecipientEmail) ||
-                string.IsNullOrWhiteSpace(request.RecipientName) ||
-                string.IsNullOrWhiteSpace(request.OtpCode) ||
-                request.OtpCode.Length != 6 ||
-                !request.OtpCode.All(char.IsDigit) ||
-                request.ExpiryMinutes <= 0)
-            {
-                return BadRequest(new
-                {
-                    isSuccess = false,
-                    message = "Valid recipient details and a six-digit OTP are required."
-                });
-            }
-
             await _notificationService.SendTwoFactorOtpNotificationAsync(request, cancellationToken);
 
             return Accepted(new
@@ -75,16 +51,6 @@ namespace Fundoo.Notification.Api.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> SendWelcome([FromBody] WelcomeNotificationRequest request)
         {
-            if (string.IsNullOrWhiteSpace(request.RecipientEmail) ||
-                string.IsNullOrWhiteSpace(request.RecipientName))
-            {
-                return BadRequest(new
-                {
-                    isSuccess = false,
-                    message = "Recipient email and name are required."
-                });
-            }
-
             await _notificationService.SendWelcomeNotificationAsync(request);
 
             return Accepted(new

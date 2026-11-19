@@ -1,12 +1,20 @@
 using Fundoo.Notification.Api.Services;
 using Fundoo.Notification.Application.Abstractions;
 using Microsoft.Extensions.Options;
+using FluentValidation;
+using Fundoo.Notification.Api.Validation;
 using Fundoo.Notification.Api.Services.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Register controllers
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<FluentValidationActionFilter>();
+    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+});
+builder.Services.AddScoped<FluentValidationActionFilter>();
+builder.Services.AddValidatorsFromAssemblyContaining<PasswordResetNotificationRequestValidator>();
 
 // Register Swagger/OpenAPI
 builder.Services.AddEndpointsApiExplorer();

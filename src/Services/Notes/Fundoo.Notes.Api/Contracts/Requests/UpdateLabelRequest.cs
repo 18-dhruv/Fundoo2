@@ -1,11 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+namespace Fundoo.Notes.Api.Contracts.Requests;
 
-namespace Fundoo.Notes.Api.Contracts.Requests
+public sealed class UpdateLabelRequest
 {
-    public class UpdateLabelRequest
-    {
-        [Required]
-        [MaxLength(100)]
-        public string Name { get; set; } = string.Empty;
-    }
+    public string Name { get; set; } = string.Empty;
 }

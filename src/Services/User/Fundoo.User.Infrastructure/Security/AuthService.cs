@@ -31,13 +31,11 @@ namespace Fundoo.User.Infrastructure.Security
             _logger = logger;
         }
 
-        public async Task<AuthResult> RegisterAsync(string firstName, string lastName, string email, string password,
-            CancellationToken cancellationToken = default)
+        public async Task<AuthResult> RegisterAsync(string firstName, string lastName, string email, string password,CancellationToken cancellationToken = default)
         {
             var normalizedEmail = email.Trim().ToUpperInvariant();
 
-            var existingUser =
-                await _userRepository.GetByNormalizedEmailAsync(
+            var existingUser = await _userRepository.GetByNormalizedEmailAsync(
                     normalizedEmail,
                     cancellationToken);
 
@@ -73,23 +71,18 @@ namespace Fundoo.User.Infrastructure.Security
             {
                 IsSuccess = true,
                 Message = "Registration successful.",
-                //AccessToken = accessToken,
                 UserId = user.Id
             };
         }
 
-        public async Task<AuthResult> LoginAsync(string email, string password,
-            CancellationToken cancellationToken = default)
+        public async Task<AuthResult> LoginAsync(string email, string password,CancellationToken cancellationToken = default)
         {
             var normalizedEmail = email.Trim().ToUpperInvariant();
 
-            var user =
-                await _userRepository.GetByNormalizedEmailAsync(
-                    normalizedEmail,
-                    cancellationToken);
+            var user = await _userRepository.GetByNormalizedEmailAsync(
+                    normalizedEmail,cancellationToken);
 
-            if (user is null ||
-                !user.IsActive ||
+            if (user is null || !user.IsActive ||
                 !_passwordHasher.Verify(password, user.PasswordHash))
             {
                 return new AuthResult
@@ -108,8 +101,7 @@ namespace Fundoo.User.Infrastructure.Security
         {
             if (string.IsNullOrWhiteSpace(provider) ||
                 string.IsNullOrWhiteSpace(providerSubject) ||
-                string.IsNullOrWhiteSpace(email) ||
-                !emailVerified)
+                string.IsNullOrWhiteSpace(email) ||!emailVerified)
             {
                 return new AuthResult
                 {
@@ -135,20 +127,19 @@ namespace Fundoo.User.Infrastructure.Security
 
                 if (user is null)
                 {
-                    var unusablePassword = Convert.ToBase64String(
-                        RandomNumberGenerator.GetBytes(48));
+                   var unusablePassword = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48));
                     user = new AppUser
                     {
-                        Id = Guid.NewGuid(),
-                        FirstName = string.IsNullOrWhiteSpace(firstName) ? provider : firstName.Trim(),
-                        LastName = lastName.Trim(),
-                        Email = email.Trim(),
-                        NormalizedEmail = normalizedEmail,
-                        PasswordHash = _passwordHasher.Hash(unusablePassword),
-                        IsActive = true,
-                        TwoFactorEnabled = true,
-                        CreatedAtUtc = DateTime.UtcNow,
-                        UpdatedAtUtc = DateTime.UtcNow
+                       Id = Guid.NewGuid(),
+                       FirstName =string.IsNullOrWhiteSpace(firstName) ? provider : firstName.Trim(),
+                       LastName = lastName.Trim(),
+                       Email = email.Trim(),
+                       NormalizedEmail = normalizedEmail,
+                       PasswordHash = _passwordHasher.Hash(unusablePassword),
+                       IsActive = true,
+                       TwoFactorEnabled = true,
+                       CreatedAtUtc = DateTime.UtcNow,
+                       UpdatedAtUtc = DateTime.UtcNow
                     };
 
                     await _userRepository.AddAsync(user, cancellationToken);
@@ -188,8 +179,7 @@ namespace Fundoo.User.Infrastructure.Security
 
             var otpCode = _twoFactorService.GenerateOtpCode();
             const int expiryMinutes = 10;
-            await _twoFactorOtpStore.IssueAsync(
-                user.Id, otpCode, TimeSpan.FromMinutes(expiryMinutes), cancellationToken);
+            await _twoFactorOtpStore.IssueAsync(user.Id, otpCode, TimeSpan.FromMinutes(expiryMinutes), cancellationToken);
 
             var sent = false;
             try

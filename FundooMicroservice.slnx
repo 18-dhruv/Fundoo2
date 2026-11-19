@@ -27,4 +27,7 @@
     <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/User/Fundoo.User.Domain/Fundoo.User.Domain.csproj" />
     <Project Path="D:/Sunakshi/FundooMicroservice/src/Services/User/Fundoo.User.Infrastructure/Fundoo.User.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Fundoo.UnitTests/Fundoo.UnitTests.csproj" />
+  </Folder>
 </Solution>

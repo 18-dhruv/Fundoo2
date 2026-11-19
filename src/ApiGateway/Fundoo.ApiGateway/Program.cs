@@ -274,6 +274,11 @@ app.MapHealthChecks("/health/ready", new HealthCheckOptions
 {
     Predicate = check => check.Tags.Contains("ready")
 });
+ThreadPool.GetMinThreads(out int minWorkers, out int minIo);
+ThreadPool.GetMaxThreads(out int maxWorkers, out int maxIo);
+
+Console.WriteLine($"Processors: {Environment.ProcessorCount}");
+Console.WriteLine($"Min workers: {minWorkers}, max workers: {maxWorkers}");
 app.Run();
 
 public sealed class FundooRetryPipelineProvider

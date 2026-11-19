@@ -7,12 +7,20 @@ using Microsoft.OpenApi.Models;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text;
+using FluentValidation;
+using Fundoo.User.Api.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.Add<FluentValidationActionFilter>();
+    options.SuppressImplicitRequiredAttributeForNonNullableReferenceTypes = true;
+});
+builder.Services.AddScoped<FluentValidationActionFilter>();
+builder.Services.AddValidatorsFromAssemblyContaining<RegisterRequestValidator>();
 // Health check registration
 builder.Services
     .AddHealthChecks()

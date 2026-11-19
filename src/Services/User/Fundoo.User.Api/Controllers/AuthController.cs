@@ -42,9 +42,7 @@ namespace Fundoo.User.Api.Controllers
         }
 
         [HttpPost("login")]
-        public async Task<IActionResult> Login(
-            [FromBody] LoginRequest request,
-            CancellationToken cancellationToken)
+        public async Task<IActionResult> Login([FromBody] LoginRequest request,CancellationToken cancellationToken)
         {
             var result = await _authService.LoginAsync(
                 request.Email,
@@ -124,19 +122,9 @@ namespace Fundoo.User.Api.Controllers
         }
 
         [HttpPost("2fa/verify")]
-        public async Task<IActionResult> Verify2FA(
-            [FromBody] Verify2FARequest request,
+        public async Task<IActionResult> Verify2FA([FromBody] Verify2FARequest request,
             CancellationToken cancellationToken)
         {
-            if (string.IsNullOrWhiteSpace(request.Email) || string.IsNullOrWhiteSpace(request.Code))
-            {
-                return BadRequest(new
-                {
-                    isSuccess = false,
-                    message = "Email and code are required."
-                });
-            }
-
             var result = await _authService.VerifyTwoFactorCodeAsync(
                 request.Email,
                 request.Code,
