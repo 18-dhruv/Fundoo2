@@ -1,14 +1,17 @@
-// CI/CD: test -> build 4 images -> push to Azure Container Registry -> deploy to k3s.
+// CI/CD: test -> build 4 images -> push to Azure Container Registry -> DB migrations -> deploy to k3s.
 // Jenkins credentials required (Manage Jenkins > Credentials):
 //   acr-credentials  : Username/Password  (ACR admin user or a service principal with AcrPush)
 //   k3s-kubeconfig   : Secret file         (k3s kubeconfig, server address reachable from Jenkins)
-// Agent requirements: docker + kubectl on PATH (see deploy/AZURE_DEPLOY.md).
+//   azure-pg         : Username/Password  (Azure Database for PostgreSQL admin login)
+// Agent requirements: docker + kubectl on PATH, and the Postgres firewall must allow the agent's IP
+// (see deploy/AZURE_DEPLOY.md).
 pipeline {
   agent any
 
   parameters {
     string(name: 'ACR_NAME', defaultValue: 'fundooacr', description: 'Azure Container Registry name (without .azurecr.io)')
-    booleanParam(name: 'RUN_DB_INIT', defaultValue: true, description: 'Re-apply Postgres schemas (idempotent)')
+    string(name: 'PG_HOST', defaultValue: 'fundoo-pg.postgres.database.azure.com', description: 'Azure PostgreSQL server host name')
+    booleanParam(name: 'RUN_MIGRATIONS', defaultValue: true, description: 'Run EF Core + SQL migrations before deploying')
   }
 
   environment {
@@ -27,9 +30,15 @@ pipeline {
       steps {
         // Runs in the .NET 8 SDK container so the agent needs no dotnet install.
         sh '''
-          docker run --rm -v "$WORKSPACE":/repo -w /repo mcr.microsoft.com/dotnet/sdk:8.0 \
-            dotnet test tests/Fundoo.UnitTests/Fundoo.UnitTests.csproj -c Release \
-            --logger "trx;LogFileName=results.trx" --results-directory /repo/TestResults
+          # Source is mounted read-only and copied in, so no root-owned bin/obj land in the workspace.
+          mkdir -p TestResults
+          docker run --rm -v "$WORKSPACE":/repo:ro -v "$WORKSPACE/TestResults":/results \
+            mcr.microsoft.com/dotnet/sdk:8.0 bash -c '
+              set -e
+              mkdir /work && cp -r /repo/src /repo/tests /work/ && cd /work
+              dotnet test tests/Fundoo.UnitTests/Fundoo.UnitTests.csproj -c Release \
+                --logger "trx;LogFileName=results.trx" --results-directory /results
+              chmod -R a+rw /results'
         '''
       }
       post { always { archiveArtifacts artifacts: 'TestResults/*.trx', allowEmptyArchive: true } }
@@ -64,6 +73,17 @@ pipeline {
       }
     }
 
+    // Runs before the deploy so new code never starts against an old schema.
+    // Every migration is additive/idempotent, so pods still on the previous version keep working.
+    stage('DB migrations') {
+      when { expression { params.RUN_MIGRATIONS } }
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'azure-pg', usernameVariable: 'PG_USER', passwordVariable: 'PG_PASSWORD')]) {
+          sh 'chmod +x deploy/db/migrate.sh && PG_HOST="$PG_HOST" deploy/db/migrate.sh'
+        }
+      }
+    }
+
     stage('Deploy to k3s') {
       steps {
         withCredentials([
@@ -84,10 +104,8 @@ pipeline {
             kubectl -n fundoo get secret fundoo-secrets >/dev/null || { echo "Secret fundoo-secrets missing - see deploy/AZURE_DEPLOY.md step 6"; exit 1; }
 
             # Jobs are immutable: delete so they re-run with the new spec.
-            kubectl -n fundoo delete job kafka-topics db-init --ignore-not-found
+            kubectl -n fundoo delete job kafka-topics --ignore-not-found
             kubectl apply -k deploy/
-            if [ "$RUN_DB_INIT" = "false" ]; then kubectl -n fundoo delete job db-init --ignore-not-found; else
-              kubectl -n fundoo wait --for=condition=complete job/db-init --timeout=180s; fi
 
             for d in user-api notes-api notification-api api-gateway; do
               kubectl -n fundoo rollout status deployment/$d --timeout=300s

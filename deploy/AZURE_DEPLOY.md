@@ -99,6 +99,7 @@ Open `http://<VM_IP>:8080`, paste the password, install the suggested plugins, c
 |---|---|---|
 | `acr-credentials` | Username with password | from `az acr credential show -n $ACR` |
 | `k3s-kubeconfig` | Secret file | upload `/etc/rancher/k3s/k3s.yaml` from the VM (`scp azureuser@$VM_IP:/etc/rancher/k3s/k3s.yaml .`). Jenkins runs on the same VM, so `server: https://127.0.0.1:6443` works as-is. |
+| `azure-pg` | Username with password | Postgres admin login (`fundooadmin` / your `$PG_PASS`). Used by the **DB migrations** stage. |
 
 ## 6. Create the app secret in the cluster (once)
 
@@ -110,7 +111,6 @@ sudo kubectl create namespace fundoo --dry-run=client -o yaml | sudo kubectl app
 sudo kubectl -n fundoo create secret generic fundoo-secrets \
   --from-literal=ConnectionStrings__UserDb="Host=$PG_HOST;Port=5432;Database=fundoo_users;Username=fundooadmin;Password=<pg-pass>;Ssl Mode=Require" \
   --from-literal=ConnectionStrings__NotesDb="Host=$PG_HOST;Port=5432;Database=fundoo_notes;Username=fundooadmin;Password=<pg-pass>;Ssl Mode=Require" \
-  --from-literal=PG_HOST="$PG_HOST" --from-literal=PG_USER=fundooadmin --from-literal=PG_PASSWORD='<pg-pass>' \
   --from-literal=Jwt__SigningKey="$(openssl rand -base64 48)" \
   --from-literal=InternalService__SharedSecret="$(openssl rand -base64 48)" \
   --from-literal=EmailSettings__Host=smtp.gmail.com --from-literal=EmailSettings__Port=587 \
@@ -125,15 +125,21 @@ SMTP matters: login always sends an OTP email, and you need that code to get a t
 
 1. Push this repo (with this branch) to a GitHub repo you own.
 2. Jenkins → *New Item* → **Pipeline** → *Pipeline script from SCM* → Git → your repo URL, branch `*/devops/postman-azure-k3s`, script path `Jenkinsfile`.
-3. *Build with Parameters* → `ACR_NAME` = your `$ACR` value → Build.
+3. *Build with Parameters* → `ACR_NAME` = your `$ACR` value, `PG_HOST` = `<pg-name>.postgres.database.azure.com` → Build.
 
-The pipeline runs the unit tests, builds the 4 images, pushes them to ACR, creates the `acr-pull` secret, applies the Postgres schemas (`db-init` Job), creates the Kafka topics and rolls out the services.
+The pipeline runs the unit tests, builds the 4 images, pushes them to ACR, runs the database migrations, then creates the `acr-pull` secret and the Kafka topics and rolls out the services.
+
+**Migrations run from Jenkins** (stage *DB migrations*, script [`deploy/db/migrate.sh`](db/migrate.sh)), before the new pods start:
+- User DB: `dotnet ef database update` with the EF Core migrations in `Fundoo.User.Infrastructure`, so a new migration added to the code is applied on the next build.
+- Notes DB: `deploy/db/notes-db.sql` (idempotent).
+
+Both run in throwaway Docker containers on the Jenkins agent, which connects straight to Azure Postgres (the firewall rule from step 3 allows the VM). Untick `RUN_MIGRATIONS` to skip them. To run them by hand from the VM: `PG_HOST=... PG_USER=fundooadmin PG_PASSWORD=... deploy/db/migrate.sh`.
 
 Check it on the VM:
 
 ```bash
 sudo kubectl -n fundoo get pods
-sudo kubectl -n fundoo logs job/db-init
+sudo kubectl -n fundoo logs job/kafka-topics
 curl -i http://localhost/api/auth/login -H 'Content-Type: application/json' -d '{"email":"x@y.com","password":"bad"}'   # expect 401
 ```
 

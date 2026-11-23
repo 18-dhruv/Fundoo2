@@ -93,32 +93,3 @@ spec:
               for t in notes.created.v1 notes.updated.v1 notes.events.dead-letter.v1; do
                 kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic "$t" --partitions 1 --replication-factor 1
               done
----
-# Applies the Postgres schemas to Azure Database for PostgreSQL. Both scripts are idempotent.
-apiVersion: batch/v1
-kind: Job
-metadata: { name: db-init, namespace: fundoo }
-spec:
-  backoffLimit: 4
-  template:
-    spec:
-      restartPolicy: OnFailure
-      containers:
-        - name: psql
-          image: postgres:16-alpine
-          command: ["sh", "-c"]
-          args:
-            - |
-              set -e
-              export PGSSLMODE=require
-              psql -v ON_ERROR_STOP=1 -d fundoo_users -f /sql/user-db.sql
-              psql -v ON_ERROR_STOP=1 -d fundoo_notes -f /sql/notes-db.sql
-              echo "schemas applied"
-          env:
-            - { name: PGHOST,     valueFrom: { secretKeyRef: { name: fundoo-secrets, key: PG_HOST } } }
-            - { name: PGUSER,     valueFrom: { secretKeyRef: { name: fundoo-secrets, key: PG_USER } } }
-            - { name: PGPASSWORD, valueFrom: { secretKeyRef: { name: fundoo-secrets, key: PG_PASSWORD } } }
-          volumeMounts: [{ name: sql, mountPath: /sql }]
-      volumes:
-        - name: sql
-          configMap: { name: db-schemas }

@@ -7,11 +7,6 @@ resources:
   - k8s/00-namespace-config.yaml
   - k8s/10-infra.yaml
   - k8s/20-apps.yaml
-configMapGenerator:
-  - name: db-schemas
-    files:
-      - db/user-db.sql
-      - db/notes-db.sql
 images:
   - { name: fundoo-user-api,         newName: fundooacr.azurecr.io/fundoo-user-api,         newTag: latest }
   - { name: fundoo-notes-api,        newName: fundooacr.azurecr.io/fundoo-notes-api,        newTag: latest }
