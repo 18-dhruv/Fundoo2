@@ -14,7 +14,7 @@ pipeline {
 
   parameters {
     string(name: 'ACR_NAME', defaultValue: '', description: 'Azure Container Registry name (without .azurecr.io). Leave empty to load images directly into k3s on this VM.')
-    string(name: 'PG_HOST', defaultValue: 'fundoo-pg.postgres.database.azure.com', description: 'Azure PostgreSQL server host name')
+    string(name: 'PG_HOST', defaultValue: '', description: 'Azure PostgreSQL host. Empty = the FUNDOO_PG_HOST global variable set by deploy/azure/setup-vm.sh (used by automatic builds).')
     booleanParam(name: 'RUN_MIGRATIONS', defaultValue: true, description: 'Run EF Core + SQL migrations before deploying')
   }
 
@@ -94,7 +94,11 @@ pipeline {
       when { expression { params.RUN_MIGRATIONS } }
       steps {
         withCredentials([usernamePassword(credentialsId: 'azure-pg', usernameVariable: 'PG_USER', passwordVariable: 'PG_PASSWORD')]) {
-          sh 'chmod +x deploy/db/migrate.sh && PG_HOST="$PG_HOST" deploy/db/migrate.sh'
+          sh '''
+            export PG_HOST="${PG_HOST:-$FUNDOO_PG_HOST}"
+            [ -n "$PG_HOST" ] || { echo "Set the PG_HOST parameter or the FUNDOO_PG_HOST global variable"; exit 1; }
+            chmod +x deploy/db/migrate.sh && deploy/db/migrate.sh
+          '''
         }
       }
     }

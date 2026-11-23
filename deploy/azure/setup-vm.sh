@@ -61,6 +61,11 @@ cat > $JH/casc/jenkins.yaml <<EOF
 jenkins:
   systemMessage: "Fundoo CI/CD"
   numExecutors: 1
+  globalNodeProperties:
+    - envVars:
+        env:
+          - key: FUNDOO_PG_HOST
+            value: "${PG_HOST}"
   securityRealm:
     local:
       allowsSignup: false
@@ -97,7 +102,7 @@ jobs:
       pipelineJob('fundoo') {
         parameters {
           stringParam('ACR_NAME', '${ACR_NAME}', 'Azure Container Registry name')
-          stringParam('PG_HOST', '${PG_HOST}', 'Azure PostgreSQL host')
+          stringParam('PG_HOST', '', 'Azure PostgreSQL host (empty = FUNDOO_PG_HOST)')
           booleanParam('RUN_MIGRATIONS', true, 'Run DB migrations before deploy')
         }
         triggers { scm('H/5 * * * *') }
