@@ -208,7 +208,7 @@ envs = {
         "baseUrl": "https://localhost:7000", "userUrl": "https://localhost:7001",
         "notesUrl": "https://localhost:7002", "notificationUrl": "http://localhost:5230", **common},
     "Fundoo - Azure k3s": {
-        "baseUrl": "http://<VM_PUBLIC_IP_OR_DNS>", "userUrl": "http://localhost:5195",
+        "baseUrl": "http://20.6.128.31", "userUrl": "http://localhost:5195",
         "notesUrl": "http://localhost:5077", "notificationUrl": "http://localhost:5230", **common},
 }
 for name, values in envs.items():
