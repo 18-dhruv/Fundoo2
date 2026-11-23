@@ -17,6 +17,8 @@ data:
   Jwt__Issuer: "fundoo-user-api"
   Jwt__Audience: "fundoo-clients"
   Jwt__ExpiryMinutes: "30"
+  # Serve Swagger UI in Production too (reached through the gateway at /docs/user/ and /docs/notes/).
+  Swagger__Enabled: "true"
 ---
 # Gateway routing for the cluster (replaces the localhost routes in src/ApiGateway/.../ocelot.json).
 apiVersion: v1
@@ -42,6 +44,13 @@ data:
           "DownstreamHostAndPorts": [{ "Host": "notes-api", "Port": 80 }] },
         { "UpstreamPathTemplate": "/api/labels/{everything}", "UpstreamHttpMethod": ["GET","POST","PUT","DELETE","PATCH"],
           "DownstreamPathTemplate": "/api/labels/{everything}", "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "notes-api", "Port": 80 }] }
+,
+        { "UpstreamPathTemplate": "/docs/user/{everything}", "UpstreamHttpMethod": ["GET"],
+          "DownstreamPathTemplate": "/swagger/{everything}", "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "user-api", "Port": 80 }] },
+        { "UpstreamPathTemplate": "/docs/notes/{everything}", "UpstreamHttpMethod": ["GET"],
+          "DownstreamPathTemplate": "/swagger/{everything}", "DownstreamScheme": "http",
           "DownstreamHostAndPorts": [{ "Host": "notes-api", "Port": 80 }] }
       ],
       "GlobalConfiguration": { "BaseUrl": "http://localhost" }

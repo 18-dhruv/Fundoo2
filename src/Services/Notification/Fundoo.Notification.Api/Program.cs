@@ -39,7 +39,7 @@ builder.Services.AddHostedService<NoteEventsConsumer>();
 var app = builder.Build();
 
 // Configure Swagger
-if (app.Environment.IsDevelopment())
+if (app.Environment.IsDevelopment() || app.Configuration.GetValue<bool>("Swagger:Enabled"))
 {
     app.UseSwagger();
     app.UseSwaggerUI();
