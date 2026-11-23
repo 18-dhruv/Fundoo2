@@ -123,8 +123,8 @@ SMTP matters: login always sends an OTP email, and you need that code to get a t
 
 ## 7. Pipeline job
 
-1. Push this repo (with this branch) to a GitHub repo you own.
-2. Jenkins → *New Item* → **Pipeline** → *Pipeline script from SCM* → Git → your repo URL, branch `*/devops/postman-azure-k3s`, script path `Jenkinsfile`.
+1. The code is on `main` in your GitHub repo.
+2. Jenkins → *New Item* → **Pipeline** → *Pipeline script from SCM* → Git → your repo URL, branch `*/main`, script path `Jenkinsfile`.
 3. *Build with Parameters* → `ACR_NAME` = your `$ACR` value, `PG_HOST` = `<pg-name>.postgres.database.azure.com` → Build.
 
 The pipeline runs the unit tests, builds the 4 images, pushes them to ACR, runs the database migrations, then creates the `acr-pull` secret and the Kafka topics and rolls out the services.
