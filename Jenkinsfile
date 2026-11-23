@@ -127,6 +127,11 @@ pipeline {
             kubectl -n fundoo delete job kafka-topics --ignore-not-found
             kubectl apply -k deploy/
 
+            # The Notification consumer does not re-subscribe to topics that were missing when it
+            # started, so make sure the topics exist and then (re)start it.
+            kubectl -n fundoo wait --for=condition=complete job/kafka-topics --timeout=300s
+            kubectl -n fundoo rollout restart deployment/notification-api
+
             for d in user-api notes-api notification-api api-gateway; do
               kubectl -n fundoo rollout status deployment/$d --timeout=300s
             done
