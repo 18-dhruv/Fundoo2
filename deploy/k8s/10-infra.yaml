@@ -1,0 +1,124 @@
+# In-cluster Redis + Kafka (KRaft, single node). Postgres is Azure-managed, not in the cluster.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: redis, namespace: fundoo }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: redis } }
+  template:
+    metadata: { labels: { app: redis } }
+    spec:
+      containers:
+        - name: redis
+          image: redis:7-alpine
+          args: ["redis-server", "--save", "", "--appendonly", "no"]
+          ports: [{ containerPort: 6379 }]
+          resources: { requests: { cpu: 50m, memory: 64Mi }, limits: { memory: 256Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: redis, namespace: fundoo }
+spec:
+  selector: { app: redis }
+  ports: [{ port: 6379, targetPort: 6379 }]
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata: { name: kafka, namespace: fundoo }
+spec:
+  serviceName: kafka
+  replicas: 1
+  selector: { matchLabels: { app: kafka } }
+  template:
+    metadata: { labels: { app: kafka } }
+    spec:
+      # Without this k8s injects KAFKA_PORT=tcp://..., which breaks the Confluent image.
+      enableServiceLinks: false
+      containers:
+        - name: kafka
+          image: confluentinc/cp-kafka:7.8.0
+          ports: [{ containerPort: 9092 }]
+          env:
+            - { name: KAFKA_NODE_ID, value: "1" }
+            - { name: KAFKA_PROCESS_ROLES, value: "broker,controller" }
+            - { name: KAFKA_CONTROLLER_QUORUM_VOTERS, value: "1@localhost:29093" }
+            - { name: KAFKA_LISTENERS, value: "PLAINTEXT://0.0.0.0:9092,CONTROLLER://localhost:29093" }
+            - { name: KAFKA_ADVERTISED_LISTENERS, value: "PLAINTEXT://kafka:9092" }
+            - { name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP, value: "CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT" }
+            - { name: KAFKA_CONTROLLER_LISTENER_NAMES, value: "CONTROLLER" }
+            - { name: KAFKA_INTER_BROKER_LISTENER_NAME, value: "PLAINTEXT" }
+            - { name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR, value: "1" }
+            - { name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR, value: "1" }
+            - { name: KAFKA_AUTO_CREATE_TOPICS_ENABLE, value: "false" }
+            - { name: KAFKA_HEAP_OPTS, value: "-Xms256m -Xmx512m" }
+            - { name: CLUSTER_ID, value: "MkU3OEVBNTcwNTJENDM2Qk" }
+          readinessProbe:
+            tcpSocket: { port: 9092 }
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources: { requests: { cpu: 200m, memory: 512Mi }, limits: { memory: 1Gi } }
+          volumeMounts: [{ name: data, mountPath: /var/lib/kafka/data }]
+  volumeClaimTemplates:
+    - metadata: { name: data }
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        storageClassName: local-path   # k3s built-in provisioner
+        resources: { requests: { storage: 5Gi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: kafka, namespace: fundoo }
+spec:
+  selector: { app: kafka }
+  ports: [{ port: 9092, targetPort: 9092 }]
+---
+# Creates the topics the services use (auto-create is off). Re-run safely.
+apiVersion: batch/v1
+kind: Job
+metadata: { name: kafka-topics, namespace: fundoo }
+spec:
+  backoffLimit: 10
+  template:
+    spec:
+      restartPolicy: OnFailure
+      enableServiceLinks: false
+      containers:
+        - name: init
+          image: confluentinc/cp-kafka:7.8.0
+          command: ["bash", "-c"]
+          args:
+            - |
+              set -e
+              for t in notes.created.v1 notes.updated.v1 notes.events.dead-letter.v1; do
+                kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic "$t" --partitions 1 --replication-factor 1
+              done
+---
+# Applies the Postgres schemas to Azure Database for PostgreSQL. Both scripts are idempotent.
+apiVersion: batch/v1
+kind: Job
+metadata: { name: db-init, namespace: fundoo }
+spec:
+  backoffLimit: 4
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: psql
+          image: postgres:16-alpine
+          command: ["sh", "-c"]
+          args:
+            - |
+              set -e
+              export PGSSLMODE=require
+              psql -v ON_ERROR_STOP=1 -d fundoo_users -f /sql/user-db.sql
+              psql -v ON_ERROR_STOP=1 -d fundoo_notes -f /sql/notes-db.sql
+              echo "schemas applied"
+          env:
+            - { name: PGHOST,     valueFrom: { secretKeyRef: { name: fundoo-secrets, key: PG_HOST } } }
+            - { name: PGUSER,     valueFrom: { secretKeyRef: { name: fundoo-secrets, key: PG_USER } } }
+            - { name: PGPASSWORD, valueFrom: { secretKeyRef: { name: fundoo-secrets, key: PG_PASSWORD } } }
+          volumeMounts: [{ name: sql, mountPath: /sql }]
+      volumes:
+        - name: sql
+          configMap: { name: db-schemas }

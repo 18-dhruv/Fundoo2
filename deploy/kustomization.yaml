@@ -1,0 +1,19 @@
+# kubectl apply -k deploy/
+# Jenkins overrides newName/newTag per build; edit ACR name here for manual deploys.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: fundoo
+resources:
+  - k8s/00-namespace-config.yaml
+  - k8s/10-infra.yaml
+  - k8s/20-apps.yaml
+configMapGenerator:
+  - name: db-schemas
+    files:
+      - db/user-db.sql
+      - db/notes-db.sql
+images:
+  - { name: fundoo-user-api,         newName: fundooacr.azurecr.io/fundoo-user-api,         newTag: latest }
+  - { name: fundoo-notes-api,        newName: fundooacr.azurecr.io/fundoo-notes-api,        newTag: latest }
+  - { name: fundoo-notification-api, newName: fundooacr.azurecr.io/fundoo-notification-api, newTag: latest }
+  - { name: fundoo-api-gateway,      newName: fundooacr.azurecr.io/fundoo-api-gateway,      newTag: latest }

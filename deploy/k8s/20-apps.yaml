@@ -1,0 +1,124 @@
+# The four .NET services. Image names are rewritten to your ACR by deploy/kustomization.yaml / Jenkins.
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: user-api, namespace: fundoo }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: user-api } }
+  template:
+    metadata: { labels: { app: user-api } }
+    spec:
+      imagePullSecrets: [{ name: acr-pull }]
+      containers:
+        - name: app
+          image: fundoo-user-api
+          ports: [{ containerPort: 8080 }]
+          envFrom: [{ configMapRef: { name: fundoo-config } }, { secretRef: { name: fundoo-secrets } }]
+          readinessProbe: { httpGet: { path: /health/live, port: 8080 }, initialDelaySeconds: 5, periodSeconds: 10 }
+          livenessProbe:  { httpGet: { path: /health/live, port: 8080 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 384Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: user-api, namespace: fundoo }
+spec:
+  selector: { app: user-api }
+  ports: [{ port: 80, targetPort: 8080 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: notes-api, namespace: fundoo }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: notes-api } }
+  template:
+    metadata: { labels: { app: notes-api } }
+    spec:
+      imagePullSecrets: [{ name: acr-pull }]
+      containers:
+        - name: app
+          image: fundoo-notes-api
+          ports: [{ containerPort: 8080 }]
+          envFrom: [{ configMapRef: { name: fundoo-config } }, { secretRef: { name: fundoo-secrets } }]
+          readinessProbe: { httpGet: { path: /health/ready, port: 8080 }, initialDelaySeconds: 5, periodSeconds: 10 }
+          livenessProbe:  { httpGet: { path: /health/live, port: 8080 }, initialDelaySeconds: 20, periodSeconds: 20 }
+          resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 384Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: notes-api, namespace: fundoo }
+spec:
+  selector: { app: notes-api }
+  ports: [{ port: 80, targetPort: 8080 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: notification-api, namespace: fundoo }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: notification-api } }
+  template:
+    metadata: { labels: { app: notification-api } }
+    spec:
+      imagePullSecrets: [{ name: acr-pull }]
+      containers:
+        - name: app
+          image: fundoo-notification-api
+          ports: [{ containerPort: 8080 }]
+          envFrom: [{ configMapRef: { name: fundoo-config } }, { secretRef: { name: fundoo-secrets } }]
+          env:
+            - { name: Kafka__ConsumerGroupId, value: "fundoo-notifications-v1" }
+            - { name: Kafka__DeadLetterTopic, value: "notes.events.dead-letter.v1" }
+          readinessProbe: { tcpSocket: { port: 8080 }, initialDelaySeconds: 5, periodSeconds: 10 }
+          resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 384Mi } }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: notification-api, namespace: fundoo }
+spec:
+  selector: { app: notification-api }
+  ports: [{ port: 80, targetPort: 8080 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: api-gateway, namespace: fundoo }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: api-gateway } }
+  template:
+    metadata: { labels: { app: api-gateway } }
+    spec:
+      imagePullSecrets: [{ name: acr-pull }]
+      containers:
+        - name: app
+          image: fundoo-api-gateway
+          ports: [{ containerPort: 8080 }]
+          envFrom: [{ configMapRef: { name: fundoo-config } }]
+          # Ocelot handles every path, so probe the socket rather than /health/live.
+          readinessProbe: { tcpSocket: { port: 8080 }, initialDelaySeconds: 5, periodSeconds: 10 }
+          resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 384Mi } }
+          volumeMounts:
+            - { name: ocelot, mountPath: /app/ocelot.json, subPath: ocelot.json }
+      volumes:
+        - name: ocelot
+          configMap: { name: gateway-ocelot }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: api-gateway, namespace: fundoo }
+spec:
+  selector: { app: api-gateway }
+  ports: [{ port: 80, targetPort: 8080 }]
+---
+# k3s ships Traefik as its ingress controller; this exposes the gateway on the VM's port 80.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata: { name: fundoo, namespace: fundoo }
+spec:
+  ingressClassName: traefik
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend: { service: { name: api-gateway, port: { number: 80 } } }

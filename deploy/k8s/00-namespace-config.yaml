@@ -1,0 +1,48 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: fundoo
+---
+# Non-secret settings shared by the services (.NET reads "__" as ":").
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fundoo-config
+  namespace: fundoo
+data:
+  ASPNETCORE_ENVIRONMENT: "Production"
+  Kafka__BootstrapServers: "kafka:9092"
+  Redis__ConnectionString: "redis:6379,abortConnect=false"
+  NotificationService__BaseUrl: "http://notification-api/"
+  Jwt__Issuer: "fundoo-user-api"
+  Jwt__Audience: "fundoo-clients"
+  Jwt__ExpiryMinutes: "30"
+---
+# Gateway routing for the cluster (replaces the localhost routes in src/ApiGateway/.../ocelot.json).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: gateway-ocelot
+  namespace: fundoo
+data:
+  ocelot.json: |
+    {
+      "Routes": [
+        { "UpstreamPathTemplate": "/api/auth/{everything}", "UpstreamHttpMethod": ["GET","POST","PUT","DELETE","PATCH"],
+          "DownstreamPathTemplate": "/api/auth/{everything}", "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "user-api", "Port": 80 }] },
+        { "UpstreamPathTemplate": "/api/notes", "UpstreamHttpMethod": ["GET","POST"],
+          "DownstreamPathTemplate": "/api/notes", "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "notes-api", "Port": 80 }] },
+        { "UpstreamPathTemplate": "/api/notes/{everything}", "UpstreamHttpMethod": ["GET","POST","PUT","DELETE","PATCH"],
+          "DownstreamPathTemplate": "/api/notes/{everything}", "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "notes-api", "Port": 80 }] },
+        { "UpstreamPathTemplate": "/api/labels", "UpstreamHttpMethod": ["GET","POST"],
+          "DownstreamPathTemplate": "/api/labels", "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "notes-api", "Port": 80 }] },
+        { "UpstreamPathTemplate": "/api/labels/{everything}", "UpstreamHttpMethod": ["GET","POST","PUT","DELETE","PATCH"],
+          "DownstreamPathTemplate": "/api/labels/{everything}", "DownstreamScheme": "http",
+          "DownstreamHostAndPorts": [{ "Host": "notes-api", "Port": 80 }] }
+      ],
+      "GlobalConfiguration": { "BaseUrl": "http://localhost" }
+    }

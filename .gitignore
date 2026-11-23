@@ -67,3 +67,7 @@ desktop.ini
 *.db
 *.sqlite
 *.sqlite3
+
+# Real k8s secrets
+deploy/k8s/secrets.yaml
+TestResults/

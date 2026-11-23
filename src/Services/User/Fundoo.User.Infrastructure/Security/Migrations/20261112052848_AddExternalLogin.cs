@@ -29,52 +29,13 @@ namespace Fundoo.User.Infrastructure.Security.Migrations
                 oldType: "character varying(50)",
                 oldMaxLength: 50);
 
-            migrationBuilder.AddColumn<bool>(
-                name: "TwoFactorEnabled",
-                table: "Users",
-                type: "boolean",
-                nullable: false,
-                defaultValue: false);
-
-            migrationBuilder.AddColumn<string>(
-                name: "TwoFactorSecret",
-                table: "Users",
-                type: "text",
-                nullable: true);
-
-            migrationBuilder.CreateTable(
-                name: "OtpTokens",
-                columns: table => new
-                {
-                    Id = table.Column<Guid>(type: "uuid", nullable: false),
-                    UserId = table.Column<Guid>(type: "uuid", nullable: false),
-                    OtpCode = table.Column<string>(type: "text", nullable: false),
-                    Attempts = table.Column<int>(type: "integer", nullable: false),
-                    CreatedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    ExpiresAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    VerifiedAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    IsVerified = table.Column<bool>(type: "boolean", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OtpTokens", x => x.Id);
-                });
+            // TwoFactor columns and OtpTokens are created by the later
+            // 20261128* migrations; creating them here broke fresh databases.
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "OtpTokens");
-
-            migrationBuilder.DropColumn(
-                name: "TwoFactorEnabled",
-                table: "Users");
-
-            migrationBuilder.DropColumn(
-                name: "TwoFactorSecret",
-                table: "Users");
-
             migrationBuilder.AlterColumn<string>(
                 name: "LastName",
                 table: "Users",
