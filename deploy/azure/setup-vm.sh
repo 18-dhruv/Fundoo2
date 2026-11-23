@@ -28,6 +28,10 @@ echo "==> Docker, Java"
 apt-get update -qq
 apt-get install -y -qq docker.io fontconfig openjdk-21-jre-headless curl gnupg >/dev/null
 systemctl enable --now docker
+# Docker sets the iptables FORWARD policy to DROP when it starts; after a reboot that can cut off k3s pod traffic.
+install -d /etc/systemd/system/docker.service.d
+printf '[Service]\nExecStartPost=/usr/sbin/iptables -P FORWARD ACCEPT\n' > /etc/systemd/system/docker.service.d/k3s-forward.conf
+systemctl daemon-reload && iptables -P FORWARD ACCEPT
 
 echo "==> k3s"
 if ! command -v k3s >/dev/null; then
