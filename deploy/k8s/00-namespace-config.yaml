@@ -44,8 +44,7 @@ data:
           "DownstreamHostAndPorts": [{ "Host": "notes-api", "Port": 80 }] },
         { "UpstreamPathTemplate": "/api/labels/{everything}", "UpstreamHttpMethod": ["GET","POST","PUT","DELETE","PATCH"],
           "DownstreamPathTemplate": "/api/labels/{everything}", "DownstreamScheme": "http",
-          "DownstreamHostAndPorts": [{ "Host": "notes-api", "Port": 80 }] }
-,
+          "DownstreamHostAndPorts": [{ "Host": "notes-api", "Port": 80 }] },
         { "UpstreamPathTemplate": "/docs/user/{everything}", "UpstreamHttpMethod": ["GET"],
           "DownstreamPathTemplate": "/swagger/{everything}", "DownstreamScheme": "http",
           "DownstreamHostAndPorts": [{ "Host": "user-api", "Port": 80 }] },
