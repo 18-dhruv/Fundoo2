@@ -80,9 +80,9 @@ curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
 sudo kubectl get nodes
 
 # Docker (Jenkins uses it to build images)
-sudo apt-get update && sudo apt-get install -y docker.io fontconfig openjdk-17-jre
+sudo apt-get update && sudo apt-get install -y docker.io fontconfig openjdk-21-jre
 # Jenkins LTS
-sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+sudo wget -O /usr/share/keyrings/jenkins-keyring.asc https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key
 echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" | sudo tee /etc/apt/sources.list.d/jenkins.list
 sudo apt-get update && sudo apt-get install -y jenkins
 sudo usermod -aG docker jenkins && sudo systemctl restart jenkins

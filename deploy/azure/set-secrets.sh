@@ -17,6 +17,15 @@ read -rp  "SMTP username (e.g. you@gmail.com): " SMTP_USER
 read -rsp "SMTP password (Gmail: an App Password): " SMTP_PASS; echo
 read -rp  "Sender email [$SMTP_USER]: " SMTP_FROM; SMTP_FROM=${SMTP_FROM:-$SMTP_USER}
 
+echo "Checking Postgres and creating databases if missing..."
+for db in fundoo_users fundoo_notes; do
+  docker run --rm -e PGPASSWORD="$PG_PASS" -e PGSSLMODE=require postgres:16-alpine \
+    psql -h "$PG_HOST" -U "$PG_USER" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$db'" | grep -q 1 \
+  || docker run --rm -e PGPASSWORD="$PG_PASS" -e PGSSLMODE=require postgres:16-alpine \
+    psql -h "$PG_HOST" -U "$PG_USER" -d postgres -c "CREATE DATABASE $db"
+done
+echo "Postgres OK (fundoo_users, fundoo_notes)"
+
 keep() { kubectl -n fundoo get secret fundoo-secrets -o "jsonpath={.data.$1}" 2>/dev/null | base64 -d 2>/dev/null || true; }
 JWT=$(keep Jwt__SigningKey);               JWT=${JWT:-$(openssl rand -base64 48)}
 INTERNAL=$(keep InternalService__SharedSecret); INTERNAL=${INTERNAL:-$(openssl rand -base64 48)}

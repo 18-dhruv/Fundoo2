@@ -26,7 +26,7 @@ fi
 
 echo "==> Docker, Java"
 apt-get update -qq
-apt-get install -y -qq docker.io fontconfig openjdk-17-jre-headless curl gnupg >/dev/null
+apt-get install -y -qq docker.io fontconfig openjdk-21-jre-headless curl gnupg >/dev/null
 systemctl enable --now docker
 
 echo "==> k3s"
@@ -37,7 +37,7 @@ until kubectl get nodes 2>/dev/null | grep -q " Ready"; do sleep 3; done
 
 echo "==> Jenkins"
 if ! dpkg -s jenkins >/dev/null 2>&1; then
-  curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key -o /usr/share/keyrings/jenkins-keyring.asc
+  curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2026.key -o /usr/share/keyrings/jenkins-keyring.asc
   echo "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/" > /etc/apt/sources.list.d/jenkins.list
   apt-get update -qq && apt-get install -y -qq jenkins >/dev/null
 fi
