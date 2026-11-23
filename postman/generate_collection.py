@@ -181,7 +181,18 @@ collection = {
         "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
     },
     "item": [user, notes, labels, notif, health],
+    # Defaults live on the collection so it works with "No Environment"; an environment overrides them.
     "variable": [
+        {"key": "baseUrl", "value": "http://20.6.128.31"},
+        {"key": "email", "value": "your-email@example.com"},
+        {"key": "password", "value": "Test@12345"},
+        {"key": "newPassword", "value": "Test@54321"},
+        {"key": "otpCode", "value": ""},
+        {"key": "resetToken", "value": ""},
+        {"key": "notificationUrl", "value": "http://localhost:5230"},
+        {"key": "userUrl", "value": "http://localhost:5195"},
+        {"key": "notesUrl", "value": "http://localhost:5077"},
+    ] + [
         {"key": k, "value": ""} for k in ["accessToken", "userId", "noteId", "labelId"]
     ],
 }
