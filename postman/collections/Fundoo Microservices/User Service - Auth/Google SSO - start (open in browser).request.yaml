@@ -1,0 +1,7 @@
+$kind: http-request
+description: Redirects to Google. Must be opened in a browser, not Postman.
+url: "{{baseUrl}}/api/auth/google"
+method: GET
+auth:
+  type: noauth
+order: 6000

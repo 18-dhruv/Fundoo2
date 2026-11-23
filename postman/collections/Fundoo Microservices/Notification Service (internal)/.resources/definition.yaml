@@ -1,0 +1,3 @@
+$kind: collection
+description: "Fundoo.Notification.Api — not exposed through the gateway. Locally: http://localhost:5230; on k3s: `kubectl port-forward svc/notification-api 5230:80 -n fundoo`."
+order: 4000

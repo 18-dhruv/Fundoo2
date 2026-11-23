@@ -1,0 +1,3 @@
+$kind: collection
+description: Fundoo.User.Api — `api/auth/*`. Anonymous endpoints.
+order: 1000

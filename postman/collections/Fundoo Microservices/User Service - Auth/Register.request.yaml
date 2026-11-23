@@ -1,0 +1,22 @@
+$kind: http-request
+description: Creates an account. Sends a welcome email through the Notification service.
+url: "{{baseUrl}}/api/auth/register"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "firstName": "Test",
+      "lastName": "User",
+      "email": "{{email}}",
+      "password": "{{password}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: pm.test('status is one of [200, 201, 400, 409]', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 400, 409]));
+    language: text/javascript
+order: 1000

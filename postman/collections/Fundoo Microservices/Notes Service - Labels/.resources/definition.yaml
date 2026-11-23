@@ -1,0 +1,3 @@
+$kind: collection
+description: "Fundoo.Notes.Api — `api/labels/*`. Note: attach/detach routes live under /api/labels/{noteId}/labels/{labelId}."
+order: 3000

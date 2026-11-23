@@ -1,0 +1,12 @@
+$kind: http-request
+url: "{{baseUrl}}/api/notes/trash"
+method: GET
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('status is one of [200]', () => pm.expect(pm.response.code).to.be.oneOf([200]));
+    language: text/javascript
+order: 9000

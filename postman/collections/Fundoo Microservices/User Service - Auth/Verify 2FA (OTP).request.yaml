@@ -1,0 +1,25 @@
+$kind: http-request
+description: Exchanges the emailed OTP for a JWT; saves it to `accessToken`.
+url: "{{baseUrl}}/api/auth/2fa/verify"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "email": "{{email}}",
+      "code": "{{otpCode}}"
+    }
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('status is one of [200]', () => pm.expect(pm.response.code).to.be.oneOf([200]));
+      const j = pm.response.json();
+      pm.test('access token issued', () => pm.expect(j.accessToken).to.be.a('string'));
+      pm.collectionVariables.set('accessToken', j.accessToken);
+      if (j.userId) pm.collectionVariables.set('userId', j.userId);
+    language: text/javascript
+order: 3000

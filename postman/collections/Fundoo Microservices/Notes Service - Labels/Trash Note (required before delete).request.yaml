@@ -1,0 +1,13 @@
+$kind: http-request
+description: Permanent delete only works on notes that are already in the trash.
+url: "{{baseUrl}}/api/notes/{{noteId}}/trash"
+method: PUT
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: pm.test('status is one of [200, 204]', () => pm.expect(pm.response.code).to.be.oneOf([200, 204]));
+    language: text/javascript
+order: 7000

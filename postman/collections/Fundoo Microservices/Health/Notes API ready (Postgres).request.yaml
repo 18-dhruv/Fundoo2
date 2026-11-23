@@ -1,0 +1,10 @@
+$kind: http-request
+url: "{{notesUrl}}/health/ready"
+method: GET
+auth:
+  type: noauth
+scripts:
+  - type: afterResponse
+    code: pm.test('status is one of [200]', () => pm.expect(pm.response.code).to.be.oneOf([200]));
+    language: text/javascript
+order: 3000

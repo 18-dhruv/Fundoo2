@@ -62,7 +62,7 @@ user = folder(
         req("Register", "POST", "baseUrl", "api/auth/register",
             {"firstName": "Test", "lastName": "User", "email": "{{email}}", "password": "{{password}}"},
             tests=status_test(200, 201, 400, 409),
-            description="Creates an account. Sends a welcome email through the Notification service."),
+            description="Creates an account (BCrypt-hashed password). No email is sent at registration."),
         req("Login", "POST", "baseUrl", "api/auth/login",
             {"email": "{{email}}", "password": "{{password}}"},
             tests=status_test(200) + [

@@ -1,0 +1,26 @@
+$kind: http-request
+url: "{{baseUrl}}/api/notes"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "My first note",
+      "content": "Hello from Postman",
+      "color": "#FFF475",
+      "isPinned": false
+    }
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('status is one of [201]', () => pm.expect(pm.response.code).to.be.oneOf([201]));
+      const j = pm.response.json();
+      pm.collectionVariables.set('noteId', j.data.id);
+    language: text/javascript
+order: 1000

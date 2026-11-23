@@ -1,0 +1,20 @@
+$kind: collection
+description: |-
+  All APIs found in FundoMicroservices.
+
+  Flow: Register -> Login (OTP emailed) -> set `otpCode` -> Verify 2FA (saves `accessToken`) -> Notes/Labels.
+  `baseUrl` points at the Ocelot API Gateway (routes /api/auth, /api/notes, /api/labels).
+variables:
+  baseUrl: http://20.6.128.31
+  email: your-email@example.com
+  password: Test@12345
+  newPassword: Test@54321
+  otpCode: ""
+  resetToken: ""
+  notificationUrl: http://localhost:5230
+  userUrl: http://localhost:5195
+  notesUrl: http://localhost:5077
+  accessToken: ""
+  userId: ""
+  noteId: ""
+  labelId: ""

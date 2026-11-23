@@ -31,7 +31,7 @@
                 "register"
               ]
             },
-            "description": "Creates an account. Sends a welcome email through the Notification service.",
+            "description": "Creates an account (BCrypt-hashed password). No email is sent at registration.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}",

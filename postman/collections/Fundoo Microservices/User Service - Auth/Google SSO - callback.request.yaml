@@ -1,0 +1,7 @@
+$kind: http-request
+description: Called by Google after sign-in. Listed for completeness only.
+url: "{{baseUrl}}/api/auth/google/callback"
+method: GET
+auth:
+  type: noauth
+order: 7000
