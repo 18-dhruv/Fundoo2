@@ -1039,6 +1039,48 @@
           ]
         },
         {
+          "name": "Trash Note (required before delete)",
+          "request": {
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/notes/{{noteId}}/trash",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "notes",
+                "{{noteId}}",
+                "trash"
+              ]
+            },
+            "description": "Permanent delete only works on notes that are already in the trash.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{accessToken}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [],
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status is one of [200, 204]', () => pm.expect(pm.response.code).to.be.oneOf([200, 204]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Delete Note (permanent)",
           "request": {
             "method": "DELETE",
