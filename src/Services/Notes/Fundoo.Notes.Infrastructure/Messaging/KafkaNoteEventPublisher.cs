@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using Fundoo.EventContracts.Events;
+using Fundoo.Observability;
 using Fundoo.Notes.Application.Interfaces;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -47,16 +48,35 @@ public sealed class KafkaNoteEventPublisher : INoteEventPublisher, IDisposable
         NoteEvent noteEvent,
         CancellationToken cancellationToken)
     {
+        var key = noteEvent.NoteId.ToString();
+
+        // PRODUCER span; its W3C trace context travels in the record headers so the
+        // Notification consumer continues the same trace.
+        using var activity = FundooTelemetry.StartKafkaPublish(topic, key);
+        activity?.SetTag("fundoo.event.type", noteEvent.EventType);
+
+        var headers = new Headers();
+        FundooTelemetry.InjectContext(activity, (name, value) =>
+        {
+            headers.Remove(name);
+            headers.Add(name, value);
+        });
+
         try
         {
-            await _producer.ProduceAsync(topic, new Message<string, string>
+            var result = await _producer.ProduceAsync(topic, new Message<string, string>
             {
-                Key = noteEvent.NoteId.ToString(),
-                Value = JsonSerializer.Serialize(noteEvent)
+                Key = key,
+                Value = JsonSerializer.Serialize(noteEvent),
+                Headers = headers
             }, cancellationToken);
+
+            activity?.SetTag("messaging.destination.partition.id", result.Partition.Value.ToString());
+            activity?.SetTag("messaging.kafka.offset", result.Offset.Value);
         }
         catch (Exception exception)
         {
+            activity.RecordError(exception);
             _logger.LogError(exception,
                 "Failed publishing {EventType} for note {NoteId} to {Topic}",
                 noteEvent.EventType, noteEvent.NoteId, topic);

@@ -10,7 +10,10 @@ RUN dotnet publish "$PROJECT" -c Release -o /app --no-restore /p:UseAppHost=fals
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0
 ARG DLL
+# Image tag, exported as the OpenTelemetry resource attribute service.version (Jenkins passes <build>-<commit>).
+ARG VERSION=dev
 ENV APP_DLL=${DLL} \
+    SERVICE_VERSION=${VERSION} \
     ASPNETCORE_HTTP_PORTS=8080 \
     ASPNETCORE_ENVIRONMENT=Production
 WORKDIR /app

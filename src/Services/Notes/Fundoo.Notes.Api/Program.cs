@@ -8,7 +8,11 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using FluentValidation;
 using Fundoo.Notes.Api.Validation;
+using Fundoo.Observability;
 var builder = WebApplication.CreateBuilder(args);
+
+// OpenTelemetry (HTTP in, Npgsql, Kafka produce spans from KafkaNoteEventPublisher).
+builder.AddFundooObservability("fundoo-notes-api");
 
 var notesConnectionString =
     builder.Configuration.GetConnectionString("NotesDb");

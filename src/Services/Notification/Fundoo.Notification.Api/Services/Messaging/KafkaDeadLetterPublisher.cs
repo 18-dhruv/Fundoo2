@@ -1,5 +1,6 @@
 using Confluent.Kafka;
 using Confluent.Kafka.Admin;
+using Fundoo.Observability;
 
 namespace Fundoo.Notification.Api.Services.Messaging;
 
@@ -48,12 +49,30 @@ public sealed class KafkaDeadLetterPublisher : IKafkaDeadLetterPublisher, IDispo
             { "original-offset", System.Text.Encoding.UTF8.GetBytes(failedRecord.Offset.Value.ToString()) }
         };
 
-        await _producer.ProduceAsync(_topic, new Message<string, string>
+        // PRODUCER span under the consumer's "process" span, so the dead-lettering shows up in the
+        // original trace; the DLQ record carries that context for whoever inspects it later.
+        using var activity = FundooTelemetry.StartKafkaPublish(_topic, failedRecord.Message.Key);
+        activity?.SetTag("fundoo.dead_letter.original_topic", failedRecord.Topic);
+        FundooTelemetry.InjectContext(activity, (name, value) =>
         {
-            Key = failedRecord.Message.Key,
-            Value = failedRecord.Message.Value,
-            Headers = headers
-        }, cancellationToken);
+            headers.Remove(name);
+            headers.Add(name, value);
+        });
+
+        try
+        {
+            await _producer.ProduceAsync(_topic, new Message<string, string>
+            {
+                Key = failedRecord.Message.Key,
+                Value = failedRecord.Message.Value,
+                Headers = headers
+            }, cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            activity.RecordError(exception);
+            throw;
+        }
     }
 
     private async Task EnsureTopicExistsAsync(CancellationToken cancellationToken)

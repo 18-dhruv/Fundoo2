@@ -187,6 +187,8 @@ written by `deploy/azure/set-secrets.sh`, which prompts for the passwords on the
 | `deploy/azure/set-secrets.sh` | Interactive: Postgres + SMTP passwords → k8s secret and Jenkins credential |
 | `deploy/AZURE_DEPLOY.md` | Step-by-step Azure guide |
 | `postman/` | Postman collection (all endpoints, auto-saves token/ids) + environments |
+| `deploy/k8s/30-observability.yaml` | OpenTelemetry Collector in k3s (services → collector → SigNoz) |
+| `deploy/observability/` | SigNoz docker compose (local + separate SigNoz VM), dashboard and alert JSON |
 
 ## 8. Using it
 
@@ -198,7 +200,24 @@ written by `deploy/azure/set-secrets.sh`, which prompts for the passwords on the
 Or open Swagger at `http://20.6.128.31/docs/user/` (auth) and `http://20.6.128.31/docs/notes/`
 (click **Authorize** and paste the JWT).
 
-## 9. Known limitations
+## 9. Observability (OpenTelemetry + SigNoz)
+
+Every service calls `builder.AddFundooObservability("<service-name>")` (shared project
+`src/BuildingBlocks/Fundoo.Observability`) and exports **traces, metrics and logs over OTLP**:
+
+- One trace per user operation across gateway → User/Notes API → Notification API, including the Kafka hop
+  (W3C `traceparent` in the record headers) and spans for Postgres, Redis, HttpClient, Kafka and SMTP.
+- RED metrics per service, .NET runtime and Npgsql metrics, plus `fundoo.messaging.consumed` and `fundoo.email.*`.
+- Logs carry `trace_id`/`span_id`. Sensitive data (bodies, auth headers, tokens, OTPs, e-mails, query strings,
+  connection strings, note content) is redacted in process and again in the collector.
+- Locally: `docker compose -f deploy/observability/signoz/docker-compose.signoz.yml up -d` → http://localhost:8080.
+  In k3s: services → `otel-collector` → SigNoz on a separate VM (address in the `signoz-backend` secret, written by
+  `set-secrets.sh`).
+
+Full details (what changed, the spec behind each expectation, what is redacted, how to answer questions in SigNoz):
+[`docs/OBSERVABILITY.md`](docs/OBSERVABILITY.md). Running SigNoz: [`deploy/observability/README.md`](deploy/observability/README.md).
+
+## 10. Known limitations
 
 - Plain HTTP on an IP address: tokens travel unencrypted, and Google SSO can't be enabled until there's a
   domain with HTTPS.

@@ -4,6 +4,8 @@ using MailKit.Net.Smtp;
 using MailKit.Security;
 using MimeKit;
 using Fundoo.Notification.Application.Abstractions;
+using Fundoo.Observability;
+using System.Diagnostics;
 
 namespace Fundoo.Notification.Api.Services;
 
@@ -21,6 +23,7 @@ public sealed class SmtpEmailService(
             request.RecipientEmail,
             "Fundoo Notes - Note activity",
             body,
+            "note_activity",
             cancellationToken);
     }
 
@@ -36,7 +39,8 @@ public sealed class SmtpEmailService(
             await SendEmailAsync(
                 request.RecipientEmail,
                 "Fundoo Notes - Password Reset",
-                body);
+                body,
+                "password_reset");
         });
     }
 
@@ -49,13 +53,15 @@ public sealed class SmtpEmailService(
         await SendEmailAsync(
             request.RecipientEmail,
             "Welcome to Fundoo Notes!",
-            body);
+            body,
+            "welcome");
     }
 
     private async Task SendEmailAsync(
         string recipientEmail,
         string subject,
         string body,
+        string template,
         CancellationToken cancellationToken = default)
     {
         var host = GetRequiredSetting("Host");
@@ -90,19 +96,46 @@ public sealed class SmtpEmailService(
             Text = body
         };
 
+        // StartTls in every real environment; "None" only for a local catch-all SMTP server (Mailpit).
+        var security = Enum.TryParse<SecureSocketOptions>(
+            configuration["EmailSettings:SecureSocketOptions"], ignoreCase: true, out var parsed)
+            ? parsed
+            : SecureSocketOptions.StartTls;
+
+        // MailKit has no instrumentation: one CLIENT span per delivery with a child span per SMTP phase.
+        // Only the server, port and template name are recorded - never the recipient, subject body or credentials.
+        using var activity = FundooTelemetry.Email.StartActivity("smtp send", ActivityKind.Client);
+        activity?.SetTag("network.protocol.name", "smtp");
+        activity?.SetTag("server.address", host);
+        activity?.SetTag("server.port", port);
+        activity?.SetTag("fundoo.email.template", template);
+        var started = Stopwatch.GetTimestamp();
+        var outcome = "failed";
+
         using var client = new SmtpClient();
-
-        await client.ConnectAsync(
-            host,
-            port,
-            SecureSocketOptions.StartTls,
-            cancellationToken);
-
         try
         {
-            await client.AuthenticateAsync(username, password, cancellationToken);
+            using (FundooTelemetry.Email.StartActivity("smtp connect"))
+            {
+                await client.ConnectAsync(host, port, security, cancellationToken);
+            }
 
-            await client.SendAsync(message, cancellationToken);
+            using (FundooTelemetry.Email.StartActivity("smtp authenticate"))
+            {
+                await client.AuthenticateAsync(username, password, cancellationToken);
+            }
+
+            using (FundooTelemetry.Email.StartActivity("smtp data"))
+            {
+                await client.SendAsync(message, cancellationToken);
+            }
+
+            outcome = "sent";
+        }
+        catch (Exception exception)
+        {
+            activity.RecordError(exception);
+            throw;
         }
         finally
         {
@@ -110,6 +143,10 @@ public sealed class SmtpEmailService(
             {
                 await client.DisconnectAsync(true, CancellationToken.None);
             }
+
+            var tags = new TagList { { "fundoo.email.template", template }, { "outcome", outcome } };
+            FundooTelemetry.EmailsSent.Add(1, tags);
+            FundooTelemetry.EmailDuration.Record(Stopwatch.GetElapsedTime(started).TotalSeconds, tags);
         }
     }
 
@@ -128,6 +165,7 @@ public sealed class SmtpEmailService(
                 request.RecipientEmail,
                 "Fundoo Notes - Two-Factor Authentication OTP",
                 body,
+                "two_factor_otp",
                 cancellationToken);
         });
     }

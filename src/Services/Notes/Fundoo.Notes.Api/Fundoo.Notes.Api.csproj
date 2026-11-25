@@ -23,6 +23,7 @@
     <ProjectReference Include="..\Fundoo.Notes.Infrastructure\Fundoo.Notes.Infrastructure.csproj" />
     <ProjectReference Include="..\Fundoo.Notes.Application\Fundoo.Notes.Application.csproj" />
     <ProjectReference Include="..\..\..\BuildingBlocks\Fundoo.EventContracts\Fundoo.EventContracts.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Fundoo.Observability\Fundoo.Observability.csproj" />
   </ItemGroup>
 
 </Project>

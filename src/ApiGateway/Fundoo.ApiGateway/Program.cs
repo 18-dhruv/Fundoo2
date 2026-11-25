@@ -122,7 +122,21 @@ using Polly.Retry;
 using System.Net;
 using System.Text.Json;
 using System.Threading.RateLimiting;
+using Fundoo.Observability;
 var builder = WebApplication.CreateBuilder(args);
+
+// OpenTelemetry: traces/metrics/logs over OTLP. Ocelot forwards with HttpClient, so the HttpClient
+// instrumentation injects the W3C traceparent of the gateway span into every downstream request.
+// Ocelot requests have no ASP.NET Core route, so spans are named after the matched upstream template
+// ("POST /api/notes/{everything}") instead of just "POST" - low cardinality, no ids or query strings.
+builder.AddFundooObservability("fundoo-api-gateway", enrichServerSpan: (activity, context) =>
+{
+    var template = context.Items.DownstreamRoute()?.UpstreamPathTemplate?.OriginalValue;
+    if (string.IsNullOrEmpty(template))
+        return;
+    activity.DisplayName = $"{context.Request.Method} {template}";
+    activity.SetTag("http.route", template);
+});
 
 // Load Ocelot configuration
 builder.Configuration.AddJsonFile(

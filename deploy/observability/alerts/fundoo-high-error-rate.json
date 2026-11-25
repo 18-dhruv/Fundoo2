@@ -1,0 +1,116 @@
+{
+  "alert": "Fundoo service error rate above 5%",
+  "alertType": "TRACES_BASED_ALERT",
+  "ruleType": "threshold_rule",
+  "version": "v5",
+  "condition": {
+    "compositeQuery": {
+      "queryType": "builder",
+      "panelType": "graph",
+      "unit": "percentunit",
+      "queries": [
+        {
+          "type": "builder_query",
+          "spec": {
+            "name": "A",
+            "stepInterval": 60,
+            "signal": "traces",
+            "disabled": true,
+            "aggregations": [
+              {
+                "expression": "count()"
+              }
+            ],
+            "filter": {
+              "expression": "serviceName IN ('fundoo-api-gateway','fundoo-user-api','fundoo-notes-api','fundoo-notification-api') AND spanKind = 'Server' AND hasError = true"
+            },
+            "groupBy": [
+              {
+                "name": "serviceName",
+                "signal": "",
+                "fieldContext": "",
+                "fieldDataType": "string"
+              }
+            ]
+          }
+        },
+        {
+          "type": "builder_query",
+          "spec": {
+            "name": "B",
+            "stepInterval": 60,
+            "signal": "traces",
+            "disabled": true,
+            "aggregations": [
+              {
+                "expression": "count()"
+              }
+            ],
+            "filter": {
+              "expression": "serviceName IN ('fundoo-api-gateway','fundoo-user-api','fundoo-notes-api','fundoo-notification-api') AND spanKind = 'Server'"
+            },
+            "groupBy": [
+              {
+                "name": "serviceName",
+                "signal": "",
+                "fieldContext": "",
+                "fieldDataType": "string"
+              }
+            ]
+          }
+        },
+        {
+          "type": "builder_formula",
+          "spec": {
+            "name": "F1",
+            "expression": "A/B",
+            "disabled": false
+          }
+        }
+      ]
+    },
+    "selectedQueryName": "F1",
+    "thresholds": {
+      "kind": "basic",
+      "spec": [
+        {
+          "name": "warning",
+          "target": 0.05,
+          "targetUnit": "percentunit",
+          "matchType": "1",
+          "op": "1",
+          "channels": [
+            "fundoo-team"
+          ]
+        }
+      ]
+    }
+  },
+  "labels": {
+    "severity": "warning",
+    "team": "fundoo"
+  },
+  "annotations": {
+    "summary": "{{$labels.serviceName}} error rate is {{$value}} (threshold 5%)",
+    "description": "More than 5% of incoming requests to {{$labels.serviceName}} failed over the last 5 minutes. Open Traces, filter serviceName and hasError = true, and follow the trace_id into Logs."
+  },
+  "disabled": false,
+  "evaluation": {
+    "kind": "rolling",
+    "spec": {
+      "evalWindow": "5m0s",
+      "frequency": "1m0s"
+    }
+  },
+  "schemaVersion": "v2alpha1",
+  "notificationSettings": {
+    "groupBy": [
+      "serviceName"
+    ],
+    "renotify": {
+      "enabled": false,
+      "interval": "30m"
+    },
+    "usePolicy": false
+  }
+}

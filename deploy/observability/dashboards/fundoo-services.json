@@ -1,0 +1,1043 @@
+{
+  "schemaVersion": "v6",
+  "image": "/assets/Icons/eight-ball",
+  "generateName": true,
+  "tags": [],
+  "spec": {
+    "display": {
+      "name": "Fundoo services overview",
+      "description": "RED metrics per service, gateway routes, DB, Kafka, SMTP, error logs. Source: deploy/observability/dashboards/fundoo-services.json"
+    },
+    "variables": [],
+    "panels": {
+      "a63bf70a-7eeb-5133-92d7-b649faa1141e": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Request rate per service (R)",
+            "description": "Incoming requests per second (SERVER spans), per service."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "fillSpans": false
+              },
+              "formatting": {
+                "unit": "reqps",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "spline",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": 0,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "stepInterval": 60,
+                    "signal": "traces",
+                    "source": "",
+                    "aggregations": [
+                      {
+                        "expression": "rate()"
+                      }
+                    ],
+                    "disabled": false,
+                    "filter": {
+                      "expression": "serviceName IN ('fundoo-api-gateway','fundoo-user-api','fundoo-notes-api','fundoo-notification-api') AND spanKind = 'Server'"
+                    },
+                    "groupBy": [
+                      {
+                        "name": "serviceName",
+                        "signal": "",
+                        "fieldContext": "",
+                        "fieldDataType": "string"
+                      }
+                    ],
+                    "order": [],
+                    "having": {
+                      "expression": ""
+                    },
+                    "functions": [],
+                    "legend": "{{serviceName}}"
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "6db45bab-393f-5205-88e2-3b24cb6d6d30": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Error rate per service (E)",
+            "description": "Share of SERVER spans with error status (5xx or unhandled exception)."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "fillSpans": false
+              },
+              "formatting": {
+                "unit": "percentunit",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "spline",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": 0,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "plugin": {
+                  "kind": "signoz/CompositeQuery",
+                  "spec": {
+                    "queries": [
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "A",
+                          "stepInterval": 60,
+                          "signal": "traces",
+                          "source": "",
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "disabled": true,
+                          "filter": {
+                            "expression": "serviceName IN ('fundoo-api-gateway','fundoo-user-api','fundoo-notes-api','fundoo-notification-api') AND spanKind = 'Server' AND hasError = true"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "serviceName",
+                              "signal": "",
+                              "fieldContext": "",
+                              "fieldDataType": "string"
+                            }
+                          ],
+                          "order": [],
+                          "having": {
+                            "expression": ""
+                          },
+                          "functions": [],
+                          "legend": ""
+                        }
+                      },
+                      {
+                        "type": "builder_query",
+                        "spec": {
+                          "name": "B",
+                          "stepInterval": 60,
+                          "signal": "traces",
+                          "source": "",
+                          "aggregations": [
+                            {
+                              "expression": "count()"
+                            }
+                          ],
+                          "disabled": true,
+                          "filter": {
+                            "expression": "serviceName IN ('fundoo-api-gateway','fundoo-user-api','fundoo-notes-api','fundoo-notification-api') AND spanKind = 'Server'"
+                          },
+                          "groupBy": [
+                            {
+                              "name": "serviceName",
+                              "signal": "",
+                              "fieldContext": "",
+                              "fieldDataType": "string"
+                            }
+                          ],
+                          "order": [],
+                          "having": {
+                            "expression": ""
+                          },
+                          "functions": [],
+                          "legend": ""
+                        }
+                      },
+                      {
+                        "type": "builder_formula",
+                        "spec": {
+                          "name": "F1",
+                          "expression": "A/B",
+                          "disabled": false,
+                          "having": {
+                            "expression": ""
+                          },
+                          "legend": "{{serviceName}}"
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "8e15aa23-811e-5d3f-8f3c-6f86586dd47f": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "p95 latency per service (D)",
+            "description": "95th percentile duration of incoming requests, per service."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "fillSpans": false
+              },
+              "formatting": {
+                "unit": "ns",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "spline",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": 0,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "stepInterval": 60,
+                    "signal": "traces",
+                    "source": "",
+                    "aggregations": [
+                      {
+                        "expression": "p95(durationNano)"
+                      }
+                    ],
+                    "disabled": false,
+                    "filter": {
+                      "expression": "serviceName IN ('fundoo-api-gateway','fundoo-user-api','fundoo-notes-api','fundoo-notification-api') AND spanKind = 'Server'"
+                    },
+                    "groupBy": [
+                      {
+                        "name": "serviceName",
+                        "signal": "",
+                        "fieldContext": "",
+                        "fieldDataType": "string"
+                      }
+                    ],
+                    "order": [],
+                    "having": {
+                      "expression": ""
+                    },
+                    "functions": [],
+                    "legend": "{{serviceName}}"
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "aa060c60-9014-5dd3-b4d3-9773822cbf9d": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Gateway p95 latency by route",
+            "description": "Where user-facing time goes, by Ocelot upstream route."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "fillSpans": false
+              },
+              "formatting": {
+                "unit": "ns",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "spline",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": 0,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "stepInterval": 60,
+                    "signal": "traces",
+                    "source": "",
+                    "aggregations": [
+                      {
+                        "expression": "p95(durationNano)"
+                      }
+                    ],
+                    "disabled": false,
+                    "filter": {
+                      "expression": "serviceName = 'fundoo-api-gateway' AND spanKind = 'Server' AND httpRoute EXISTS"
+                    },
+                    "groupBy": [
+                      {
+                        "name": "httpRoute",
+                        "signal": "",
+                        "fieldContext": "",
+                        "fieldDataType": "string"
+                      },
+                      {
+                        "name": "httpMethod",
+                        "signal": "",
+                        "fieldContext": "",
+                        "fieldDataType": "string"
+                      }
+                    ],
+                    "order": [],
+                    "having": {
+                      "expression": ""
+                    },
+                    "functions": [],
+                    "legend": "{{httpMethod}} {{httpRoute}}"
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "b62855b6-3f5a-5db2-a11f-8a380bb588b1": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Database p95 latency",
+            "description": "PostgreSQL calls (Npgsql / EF Core) per service."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "fillSpans": false
+              },
+              "formatting": {
+                "unit": "ns",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "spline",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": 0,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "stepInterval": 60,
+                    "signal": "traces",
+                    "source": "",
+                    "aggregations": [
+                      {
+                        "expression": "p95(durationNano)"
+                      }
+                    ],
+                    "disabled": false,
+                    "filter": {
+                      "expression": "serviceName IN ('fundoo-api-gateway','fundoo-user-api','fundoo-notes-api','fundoo-notification-api') AND spanKind = 'Client' AND db.system EXISTS"
+                    },
+                    "groupBy": [
+                      {
+                        "name": "serviceName",
+                        "signal": "",
+                        "fieldContext": "",
+                        "fieldDataType": "string"
+                      },
+                      {
+                        "name": "db.system",
+                        "signal": "",
+                        "fieldContext": "",
+                        "fieldDataType": "string"
+                      }
+                    ],
+                    "order": [],
+                    "having": {
+                      "expression": ""
+                    },
+                    "functions": [],
+                    "legend": "{{serviceName}} {{db.system}}"
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "b67aafd9-e394-5a72-a444-ce89ee7727e8": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Kafka + SMTP p95 latency",
+            "description": "Publish (Notes), consume/process (Notification) and SMTP delivery spans."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "fillSpans": false
+              },
+              "formatting": {
+                "unit": "ns",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "spline",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": 0,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "stepInterval": 60,
+                    "signal": "traces",
+                    "source": "",
+                    "aggregations": [
+                      {
+                        "expression": "p95(durationNano)"
+                      }
+                    ],
+                    "disabled": false,
+                    "filter": {
+                      "expression": "serviceName IN ('fundoo-api-gateway','fundoo-user-api','fundoo-notes-api','fundoo-notification-api') AND (name LIKE '%publish' OR name LIKE '%process' OR name = 'smtp send')"
+                    },
+                    "groupBy": [
+                      {
+                        "name": "name",
+                        "signal": "",
+                        "fieldContext": "",
+                        "fieldDataType": "string"
+                      }
+                    ],
+                    "order": [],
+                    "having": {
+                      "expression": ""
+                    },
+                    "functions": [],
+                    "legend": "{{name}}"
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "4daa9279-38b9-59f4-93a1-8c7300233259": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Kafka records consumed by outcome",
+            "description": "fundoo.messaging.consumed: processed / dead_lettered / retried."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "fillSpans": false
+              },
+              "formatting": {
+                "unit": "none",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "spline",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": 0,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "stepInterval": 60,
+                    "signal": "metrics",
+                    "source": "",
+                    "aggregations": [
+                      {
+                        "metricName": "fundoo.messaging.consumed",
+                        "temporality": "",
+                        "timeAggregation": "rate",
+                        "spaceAggregation": "sum",
+                        "reduceTo": "avg"
+                      }
+                    ],
+                    "disabled": false,
+                    "filter": {
+                      "expression": ""
+                    },
+                    "groupBy": [
+                      {
+                        "name": "messaging.destination.name",
+                        "signal": "",
+                        "fieldContext": "attribute",
+                        "fieldDataType": "string"
+                      },
+                      {
+                        "name": "outcome",
+                        "signal": "",
+                        "fieldContext": "attribute",
+                        "fieldDataType": "string"
+                      }
+                    ],
+                    "order": [],
+                    "having": {
+                      "expression": ""
+                    },
+                    "functions": [],
+                    "legend": "{{messaging.destination.name}} {{outcome}}"
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "5fce1dd7-4c49-5b3b-8ecd-5d38164aa783": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "E-mails by template and outcome",
+            "description": "fundoo.email.sent: sent / failed per template."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "fillSpans": false
+              },
+              "formatting": {
+                "unit": "none",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "spline",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": 0,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "stepInterval": 60,
+                    "signal": "metrics",
+                    "source": "",
+                    "aggregations": [
+                      {
+                        "metricName": "fundoo.email.sent",
+                        "temporality": "",
+                        "timeAggregation": "rate",
+                        "spaceAggregation": "sum",
+                        "reduceTo": "avg"
+                      }
+                    ],
+                    "disabled": false,
+                    "filter": {
+                      "expression": ""
+                    },
+                    "groupBy": [
+                      {
+                        "name": "fundoo.email.template",
+                        "signal": "",
+                        "fieldContext": "attribute",
+                        "fieldDataType": "string"
+                      },
+                      {
+                        "name": "outcome",
+                        "signal": "",
+                        "fieldContext": "attribute",
+                        "fieldDataType": "string"
+                      }
+                    ],
+                    "order": [],
+                    "having": {
+                      "expression": ""
+                    },
+                    "functions": [],
+                    "legend": "{{fundoo.email.template}} {{outcome}}"
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "459a65e5-0b31-5d7a-a3fd-8f57d8fb3095": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": "Error logs per service",
+            "description": "Log records at Error or Critical; click through to the trace via trace_id."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "fillSpans": false
+              },
+              "formatting": {
+                "unit": "none",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "spline",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": 0,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "stepInterval": 60,
+                    "signal": "logs",
+                    "source": "",
+                    "aggregations": [
+                      {
+                        "expression": "count()"
+                      }
+                    ],
+                    "disabled": false,
+                    "filter": {
+                      "expression": "service.name IN ('fundoo-api-gateway','fundoo-user-api','fundoo-notes-api','fundoo-notification-api') AND severity_text IN ('Error', 'Critical')"
+                    },
+                    "groupBy": [
+                      {
+                        "name": "service.name",
+                        "signal": "",
+                        "fieldContext": "resource",
+                        "fieldDataType": "string"
+                      }
+                    ],
+                    "order": [],
+                    "having": {
+                      "expression": ""
+                    },
+                    "functions": [],
+                    "legend": "{{service.name}}"
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      },
+      "96c7e099-d991-5d3f-93a0-fcb5412e40a8": {
+        "kind": "Panel",
+        "spec": {
+          "display": {
+            "name": ".NET GC collections",
+            "description": "dotnet.gc.collections rate per service (runtime health)."
+          },
+          "plugin": {
+            "kind": "signoz/TimeSeriesPanel",
+            "spec": {
+              "visualization": {
+                "timePreference": "global_time",
+                "fillSpans": false
+              },
+              "formatting": {
+                "unit": "none",
+                "decimalPrecision": "2"
+              },
+              "chartAppearance": {
+                "lineInterpolation": "spline",
+                "showPoints": false,
+                "lineStyle": "solid",
+                "fillMode": "none",
+                "spanGaps": {
+                  "fillOnlyBelow": false,
+                  "fillLessThan": ""
+                }
+              },
+              "axes": {
+                "softMin": 0,
+                "softMax": 0,
+                "isLogScale": false
+              },
+              "legend": {
+                "position": "bottom",
+                "mode": "list",
+                "customColors": null
+              },
+              "thresholds": null
+            }
+          },
+          "queries": [
+            {
+              "kind": "time_series",
+              "spec": {
+                "name": "A",
+                "plugin": {
+                  "kind": "signoz/BuilderQuery",
+                  "spec": {
+                    "name": "A",
+                    "stepInterval": 60,
+                    "signal": "metrics",
+                    "source": "",
+                    "aggregations": [
+                      {
+                        "metricName": "dotnet.gc.collections",
+                        "temporality": "",
+                        "timeAggregation": "rate",
+                        "spaceAggregation": "sum",
+                        "reduceTo": "avg"
+                      }
+                    ],
+                    "disabled": false,
+                    "filter": {
+                      "expression": "service.name IN ('fundoo-api-gateway','fundoo-user-api','fundoo-notes-api','fundoo-notification-api')"
+                    },
+                    "groupBy": [
+                      {
+                        "name": "service.name",
+                        "signal": "",
+                        "fieldContext": "resource",
+                        "fieldDataType": "string"
+                      }
+                    ],
+                    "order": [],
+                    "having": {
+                      "expression": ""
+                    },
+                    "functions": [],
+                    "legend": "{{service.name}}"
+                  }
+                }
+              }
+            }
+          ],
+          "links": []
+        }
+      }
+    },
+    "layouts": [
+      {
+        "kind": "Grid",
+        "spec": {
+          "items": [
+            {
+              "x": 0,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/a63bf70a-7eeb-5133-92d7-b649faa1141e"
+              }
+            },
+            {
+              "x": 6,
+              "y": 0,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/6db45bab-393f-5205-88e2-3b24cb6d6d30"
+              }
+            },
+            {
+              "x": 0,
+              "y": 6,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/8e15aa23-811e-5d3f-8f3c-6f86586dd47f"
+              }
+            },
+            {
+              "x": 6,
+              "y": 6,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/aa060c60-9014-5dd3-b4d3-9773822cbf9d"
+              }
+            },
+            {
+              "x": 0,
+              "y": 12,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/b62855b6-3f5a-5db2-a11f-8a380bb588b1"
+              }
+            },
+            {
+              "x": 6,
+              "y": 12,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/b67aafd9-e394-5a72-a444-ce89ee7727e8"
+              }
+            },
+            {
+              "x": 0,
+              "y": 18,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/4daa9279-38b9-59f4-93a1-8c7300233259"
+              }
+            },
+            {
+              "x": 6,
+              "y": 18,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/5fce1dd7-4c49-5b3b-8ecd-5d38164aa783"
+              }
+            },
+            {
+              "x": 0,
+              "y": 24,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/459a65e5-0b31-5d7a-a3fd-8f57d8fb3095"
+              }
+            },
+            {
+              "x": 6,
+              "y": 24,
+              "width": 6,
+              "height": 6,
+              "content": {
+                "$ref": "#/spec/panels/96c7e099-d991-5d3f-93a0-fcb5412e40a8"
+              }
+            }
+          ]
+        }
+      }
+    ],
+    "duration": "",
+    "refreshInterval": "",
+    "links": []
+  }
+}

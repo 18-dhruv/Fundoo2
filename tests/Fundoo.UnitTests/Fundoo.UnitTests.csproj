@@ -18,6 +18,7 @@
     <ProjectReference Include="..\..\src\Services\Notes\Fundoo.Notes.Application\Fundoo.Notes.Application.csproj" />
     <ProjectReference Include="..\..\src\Services\Notes\Fundoo.Notes.Domain\Fundoo.Notes.Domain.csproj" />
     <ProjectReference Include="..\..\src\Services\User\Fundoo.User.Infrastructure\Fundoo.User.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\BuildingBlocks\Fundoo.Observability\Fundoo.Observability.csproj" />
   </ItemGroup>
 
 </Project>
