@@ -14,6 +14,10 @@ spec:
           image: fundoo-user-api
           ports: [{ containerPort: 8080 }]
           envFrom: [{ configMapRef: { name: fundoo-config } }, { secretRef: { name: fundoo-secrets } }]
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - { name: OTEL_RESOURCE_ATTRIBUTES, value: "k8s.pod.name=$(POD_NAME),k8s.namespace.name=fundoo" }
           readinessProbe: { httpGet: { path: /health/live, port: 8080 }, initialDelaySeconds: 5, periodSeconds: 10 }
           livenessProbe:  { httpGet: { path: /health/live, port: 8080 }, initialDelaySeconds: 20, periodSeconds: 20 }
           resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 384Mi } }
@@ -40,6 +44,10 @@ spec:
           image: fundoo-notes-api
           ports: [{ containerPort: 8080 }]
           envFrom: [{ configMapRef: { name: fundoo-config } }, { secretRef: { name: fundoo-secrets } }]
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - { name: OTEL_RESOURCE_ATTRIBUTES, value: "k8s.pod.name=$(POD_NAME),k8s.namespace.name=fundoo" }
           readinessProbe: { httpGet: { path: /health/ready, port: 8080 }, initialDelaySeconds: 5, periodSeconds: 10 }
           livenessProbe:  { httpGet: { path: /health/live, port: 8080 }, initialDelaySeconds: 20, periodSeconds: 20 }
           resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 384Mi } }
@@ -67,6 +75,9 @@ spec:
           ports: [{ containerPort: 8080 }]
           envFrom: [{ configMapRef: { name: fundoo-config } }, { secretRef: { name: fundoo-secrets } }]
           env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - { name: OTEL_RESOURCE_ATTRIBUTES, value: "k8s.pod.name=$(POD_NAME),k8s.namespace.name=fundoo" }
             - { name: Kafka__ConsumerGroupId, value: "fundoo-notifications-v1" }
             - { name: Kafka__DeadLetterTopic, value: "notes.events.dead-letter.v1" }
           readinessProbe: { tcpSocket: { port: 8080 }, initialDelaySeconds: 5, periodSeconds: 10 }
@@ -94,6 +105,10 @@ spec:
           image: fundoo-api-gateway
           ports: [{ containerPort: 8080 }]
           envFrom: [{ configMapRef: { name: fundoo-config } }]
+          env:
+            - name: POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - { name: OTEL_RESOURCE_ATTRIBUTES, value: "k8s.pod.name=$(POD_NAME),k8s.namespace.name=fundoo" }
           # Ocelot handles every path, so probe the socket rather than /health/live.
           readinessProbe: { tcpSocket: { port: 8080 }, initialDelaySeconds: 5, periodSeconds: 10 }
           resources: { requests: { cpu: 50m, memory: 128Mi }, limits: { memory: 384Mi } }

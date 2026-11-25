@@ -4,10 +4,37 @@
 # Creates/updates:
 #   * k8s secret fundoo/fundoo-secrets (connection strings, JWT key, SMTP, Google SSO placeholders)
 #   * Jenkins credential "azure-pg" (via /etc/jenkins-casc.env, applied on Jenkins restart)
+#   * k8s secret fundoo/signoz-backend (where the in-cluster OpenTelemetry Collector sends telemetry)
 # Re-run any time to change values; the JWT signing key and internal secret are kept.
+# Only (re)point telemetry at SigNoz, without touching the other secrets:
+#   sudo SIGNOZ_ONLY=1 bash set-secrets.sh
 set -euo pipefail
-: "${PG_HOST:?PG_HOST is required}" "${PG_USER:?PG_USER is required}"
 export KUBECONFIG=/etc/rancher/k3s/k3s.yaml
+
+# SigNoz backend for deploy/k8s/30-observability.yaml. Not a password, but environment-specific, so it
+# lives in a secret next to the others instead of in Git.
+#   separate SigNoz VM : <private-ip>:4317, insecure=true, no key
+#   SigNoz Cloud       : ingest.<region>.signoz.cloud:443, insecure=false, ingestion key
+set_signoz() {
+  local cur; cur=$(kubectl -n fundoo get secret signoz-backend -o 'jsonpath={.data.SIGNOZ_OTLP_ENDPOINT}' 2>/dev/null | base64 -d 2>/dev/null || true)
+  read -rp  "SigNoz OTLP gRPC endpoint host:port [${cur:-skip}]: " SIGNOZ_EP; SIGNOZ_EP=${SIGNOZ_EP:-$cur}
+  [ -n "$SIGNOZ_EP" ] || { echo "SigNoz endpoint not set; telemetry stays in the collector (dropped)."; return 0; }
+  read -rp  "Plain-text connection (private network, no TLS)? [Y/n]: " SIGNOZ_PLAIN
+  case "${SIGNOZ_PLAIN:-y}" in [Nn]*) SIGNOZ_INSECURE=false;; *) SIGNOZ_INSECURE=true;; esac
+  read -rsp "SigNoz ingestion key (SigNoz Cloud only, blank for self-hosted): " SIGNOZ_KEY; echo
+  kubectl create namespace fundoo --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  kubectl -n fundoo create secret generic signoz-backend \
+    --from-literal=SIGNOZ_OTLP_ENDPOINT="$SIGNOZ_EP" \
+    --from-literal=SIGNOZ_INSECURE="$SIGNOZ_INSECURE" \
+    --from-literal=SIGNOZ_INGESTION_KEY="$SIGNOZ_KEY" \
+    --dry-run=client -o yaml | kubectl apply -f - >/dev/null
+  kubectl -n fundoo rollout restart deployment otel-collector >/dev/null 2>&1 || true
+  echo "k8s secret signoz-backend updated (collector restarting)"
+}
+
+if [ "${SIGNOZ_ONLY:-}" = 1 ]; then set_signoz; exit 0; fi
+
+: "${PG_HOST:?PG_HOST is required}" "${PG_USER:?PG_USER is required}"
 
 read -rsp "Postgres password for $PG_USER: " PG_PASS; echo
 case "$PG_PASS" in *"'"*) echo "Password must not contain a single quote"; exit 1;; esac
@@ -52,6 +79,8 @@ if [ -f /etc/jenkins-casc.env ]; then
   systemctl restart jenkins
   echo "Jenkins credential azure-pg updated (Jenkins restarting)"
 fi
+
+set_signoz
 
 # Restart running services so they pick up the new secret (no-op before the first deploy).
 kubectl -n fundoo rollout restart deployment user-api notes-api notification-api >/dev/null 2>&1 || true

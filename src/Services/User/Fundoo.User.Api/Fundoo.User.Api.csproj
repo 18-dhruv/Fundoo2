@@ -18,6 +18,8 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" Version="10.11.0" />
+    <!-- Only beta builds exist for Redis instrumentation; pinned. -->
+    <PackageReference Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.20.1-beta.1" />
     <PackageReference Include="Polly.RateLimiting" Version="8.8.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.6.2" />
   </ItemGroup>
@@ -25,6 +27,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Fundoo.User.Application\Fundoo.User.Application.csproj" />
     <ProjectReference Include="..\Fundoo.User.Infrastructure\Fundoo.User.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\..\BuildingBlocks\Fundoo.Observability\Fundoo.Observability.csproj" />
   </ItemGroup>
 
 </Project>

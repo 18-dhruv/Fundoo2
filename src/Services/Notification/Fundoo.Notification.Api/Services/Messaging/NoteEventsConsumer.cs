@@ -2,6 +2,8 @@ using Confluent.Kafka;
 using Fundoo.EventContracts.Events;
 using Fundoo.Notification.Application.Abstractions;
 using Fundoo.Notification.Application.DTO;
+using Fundoo.Observability;
+using System.Diagnostics;
 using System.Text.Json;
 
 namespace Fundoo.Notification.Api.Services.Messaging;
@@ -44,9 +46,21 @@ public sealed class NoteEventsConsumer(
         while (!stoppingToken.IsCancellationRequested)
         {
             ConsumeResult<string, string>? result = null;
+            Activity? activity = null;
             try
             {
                 result = consumer.Consume(stoppingToken);
+
+                // CONSUMER span, parented to the Notes API's publish span via the traceparent header.
+                var headers = result.Message.Headers;
+                activity = FundooTelemetry.StartKafkaProcess(
+                    result.Topic,
+                    groupId,
+                    name => headers is not null && headers.TryGetLastBytes(name, out var bytes) ? bytes : null,
+                    result.Message.Key,
+                    result.Partition.Value,
+                    result.Offset.Value);
+
                 if (string.IsNullOrWhiteSpace(result.Message.Value))
                     throw new InvalidDataException("Kafka note event has an empty payload.");
 
@@ -55,6 +69,7 @@ public sealed class NoteEventsConsumer(
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (noteEvent is null || string.IsNullOrWhiteSpace(noteEvent.RecipientEmail))
                     throw new InvalidDataException("Note event is missing required data.");
+                activity?.SetTag("fundoo.event.type", noteEvent.EventType);
 
                 using var scope = scopeFactory.CreateScope();
                 var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
@@ -67,6 +82,8 @@ public sealed class NoteEventsConsumer(
                     stoppingToken);
 
                 consumer.Commit(result);
+                FundooTelemetry.MessagesConsumed.Add(1,
+                    new("messaging.destination.name", result.Topic), new("outcome", "processed"));
                 logger.LogInformation(
                     "Processed {EventType} notification for note {NoteId} from {TopicPartitionOffset}",
                     noteEvent.EventType,
@@ -79,6 +96,7 @@ public sealed class NoteEventsConsumer(
             }
             catch (Exception exception)
             {
+                activity.RecordError(exception);
                 if (result is not null &&
                     (exception is JsonException or InvalidDataException))
                 {
@@ -86,6 +104,8 @@ public sealed class NoteEventsConsumer(
                     {
                         await deadLetterPublisher.PublishAsync(result, stoppingToken);
                         consumer.Commit(result);
+                        FundooTelemetry.MessagesConsumed.Add(1,
+                            new("messaging.destination.name", result.Topic), new("outcome", "dead_lettered"));
                         logger.LogWarning(
                             "Malformed Kafka note event at {TopicPartitionOffset} was moved to the dead-letter topic. Reason: {Reason}",
                             result.TopicPartitionOffset,
@@ -103,9 +123,19 @@ public sealed class NoteEventsConsumer(
                 {
                     logger.LogError(exception, "Failed to process Kafka note event. The record will be retried.");
                     if (result is not null)
+                    {
+                        FundooTelemetry.MessagesConsumed.Add(1,
+                            new("messaging.destination.name", result.Topic), new("outcome", "retried"));
                         consumer.Seek(result.TopicPartitionOffset);
+                    }
+                    activity?.Dispose(); // don't count the back-off delay in the span
+                    activity = null;
                     await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
                 }
+            }
+            finally
+            {
+                activity?.Dispose();
             }
         }
 

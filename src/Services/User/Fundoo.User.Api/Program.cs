@@ -9,8 +9,14 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using System.Text;
 using FluentValidation;
 using Fundoo.User.Api.Validation;
+using Fundoo.Observability;
+using OpenTelemetry.Trace;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// OpenTelemetry (HTTP in/out, EF Core via Npgsql, Redis). Redis instrumentation resolves the
+// IConnectionMultiplexer registered by AddUserInfrastructure.
+builder.AddFundooObservability("fundoo-user-api", tracing => tracing.AddRedisInstrumentation());
 
 // Add services to the container.
 

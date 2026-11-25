@@ -19,6 +19,12 @@ data:
   Jwt__ExpiryMinutes: "30"
   # Serve Swagger UI in Production too (reached through the gateway at /docs/user/ and /docs/notes/).
   Swagger__Enabled: "true"
+  # OpenTelemetry: every service exports traces/metrics/logs to the in-cluster collector
+  # (deploy/k8s/30-observability.yaml), which forwards to SigNoz.
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector:4317"
+  OTEL_EXPORTER_OTLP_PROTOCOL: "grpc"
+  OTEL_METRIC_EXPORT_INTERVAL: "30000"
+  DEPLOYMENT_ENVIRONMENT: "production"
 ---
 # Gateway routing for the cluster (replaces the localhost routes in src/ApiGateway/.../ocelot.json).
 apiVersion: v1

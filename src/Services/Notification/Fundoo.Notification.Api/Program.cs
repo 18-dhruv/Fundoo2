@@ -4,8 +4,12 @@ using Microsoft.Extensions.Options;
 using FluentValidation;
 using Fundoo.Notification.Api.Validation;
 using Fundoo.Notification.Api.Services.Messaging;
+using Fundoo.Observability;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// OpenTelemetry (HTTP in, Kafka consume spans, SMTP spans from SmtpEmailService).
+builder.AddFundooObservability("fundoo-notification-api");
 
 // Register controllers
 builder.Services.AddControllers(options =>

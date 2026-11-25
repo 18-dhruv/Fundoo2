@@ -56,6 +56,7 @@ pipeline {
               docker build \
                 --build-arg PROJECT=${proj}.csproj \
                 --build-arg DLL=\$(basename ${proj}).dll \
+                --build-arg VERSION=${IMAGE_TAG} \
                 -t ${REGISTRY}/fundoo-${name}:${IMAGE_TAG} \
                 -t ${REGISTRY}/fundoo-${name}:latest .
             """

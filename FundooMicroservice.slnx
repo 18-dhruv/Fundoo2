@@ -5,6 +5,7 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/BuildingBlocks/Fundoo.EventContracts/Fundoo.EventContracts.csproj" />
+    <Project Path="src/BuildingBlocks/Fundoo.Observability/Fundoo.Observability.csproj" />
   </Folder>
   <Folder Name="/src/ApiGateway/">
     <Project Path="src/ApiGateway/Fundoo.ApiGateway/Fundoo.ApiGateway.csproj" />

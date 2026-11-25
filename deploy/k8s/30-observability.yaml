@@ -1,0 +1,115 @@
+# OpenTelemetry Collector inside k3s. Every service sends OTLP here (OTEL_EXPORTER_OTLP_ENDPOINT in
+# fundoo-config); the collector batches, scrubs and forwards to SigNoz. The SigNoz address lives in the
+# optional secret "signoz-backend" (key SIGNOZ_OTLP_ENDPOINT, e.g. "10.0.0.5:4317" for SigNoz on a
+# separate VM), written by deploy/azure/set-secrets.sh - so the backend can change without code or image
+# changes. Until that secret exists the collector still runs and simply drops what it cannot deliver.
+apiVersion: v1
+kind: ConfigMap
+metadata: { name: otel-collector-config, namespace: fundoo }
+data:
+  config.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc: { endpoint: 0.0.0.0:4317 }
+          http: { endpoint: 0.0.0.0:4318 }
+
+    processors:
+      # Keep the collector itself small on the shared VM.
+      memory_limiter:
+        check_interval: 2s
+        limit_mib: 160
+        spike_limit_mib: 40
+      batch:
+        send_batch_size: 512
+        timeout: 5s
+      # Second line of defence behind the in-process redactor (src/BuildingBlocks/Fundoo.Observability).
+      attributes/scrub:
+        actions:
+          - { key: http.request.header.authorization, action: delete }
+          - { key: http.request.header.cookie, action: delete }
+          - { key: http.response.header.set-cookie, action: delete }
+          - { key: db.connection_string, action: delete }
+          - { key: db.statement.parameters, action: delete }
+          - { key: url.query, action: delete }
+      resource/cluster:
+        attributes:
+          - { key: k8s.cluster.name, value: fundoo-k3s, action: upsert }
+
+    exporters:
+      otlp/signoz:
+        endpoint: ${env:SIGNOZ_OTLP_ENDPOINT:-signoz-not-configured:4317}
+        # Plain gRPC to the SigNoz VM over the private VNet; TLS + ingestion key for SigNoz Cloud.
+        tls:
+          insecure: ${env:SIGNOZ_INSECURE:-true}
+        headers:
+          signoz-ingestion-key: "${env:SIGNOZ_INGESTION_KEY:-}"
+        sending_queue: { enabled: true, queue_size: 500 }
+        retry_on_failure: { enabled: true, max_elapsed_time: 120s }
+
+    extensions:
+      health_check: { endpoint: 0.0.0.0:13133 }
+
+    service:
+      extensions: [health_check]
+      telemetry:
+        logs: { level: warn }
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [memory_limiter, attributes/scrub, resource/cluster, batch]
+          exporters: [otlp/signoz]
+        metrics:
+          receivers: [otlp]
+          processors: [memory_limiter, resource/cluster, batch]
+          exporters: [otlp/signoz]
+        logs:
+          receivers: [otlp]
+          processors: [memory_limiter, attributes/scrub, resource/cluster, batch]
+          exporters: [otlp/signoz]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata: { name: otel-collector, namespace: fundoo }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: otel-collector } }
+  template:
+    metadata:
+      labels: { app: otel-collector }
+      annotations:
+        # Bump to roll the collector after editing the ConfigMap above.
+        fundoo/config-version: "1"
+    spec:
+      containers:
+        - name: collector
+          image: otel/opentelemetry-collector-contrib:0.164.0
+          args: ["--config=/conf/config.yaml"]
+          ports:
+            - { name: otlp-grpc, containerPort: 4317 }
+            - { name: otlp-http, containerPort: 4318 }
+          env:
+            - name: SIGNOZ_OTLP_ENDPOINT
+              valueFrom: { secretKeyRef: { name: signoz-backend, key: SIGNOZ_OTLP_ENDPOINT, optional: true } }
+            - name: SIGNOZ_INSECURE
+              valueFrom: { secretKeyRef: { name: signoz-backend, key: SIGNOZ_INSECURE, optional: true } }
+            - name: SIGNOZ_INGESTION_KEY
+              valueFrom: { secretKeyRef: { name: signoz-backend, key: SIGNOZ_INGESTION_KEY, optional: true } }
+            - { name: GOMEMLIMIT, value: "180MiB" }
+          readinessProbe: { httpGet: { path: /, port: 13133 }, initialDelaySeconds: 3, periodSeconds: 10 }
+          livenessProbe:  { httpGet: { path: /, port: 13133 }, initialDelaySeconds: 10, periodSeconds: 20 }
+          resources: { requests: { cpu: 20m, memory: 64Mi }, limits: { memory: 224Mi } }
+          volumeMounts:
+            - { name: config, mountPath: /conf }
+      volumes:
+        - name: config
+          configMap: { name: otel-collector-config }
+---
+apiVersion: v1
+kind: Service
+metadata: { name: otel-collector, namespace: fundoo }
+spec:
+  selector: { app: otel-collector }
+  ports:
+    - { name: otlp-grpc, port: 4317, targetPort: 4317 }
+    - { name: otlp-http, port: 4318, targetPort: 4318 }
